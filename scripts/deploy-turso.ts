@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS "Tenant" (
     "plan" TEXT NOT NULL DEFAULT 'FREE',
     "phone" TEXT,
     "cnpj" TEXT,
+    "email" TEXT,
     "address" TEXT,
     "status" TEXT NOT NULL DEFAULT 'ACTIVE',
     "totalRevenue" REAL NOT NULL DEFAULT 0,
@@ -147,6 +148,7 @@ CREATE TABLE IF NOT EXISTS "Part" (
     "category" TEXT NOT NULL,
     "costPrice" REAL NOT NULL,
     "salePrice" REAL NOT NULL,
+    "unit" TEXT DEFAULT 'UN',
     "stockQty" INTEGER NOT NULL DEFAULT 0,
     "minStock" INTEGER NOT NULL DEFAULT 1,
     "location" TEXT,
@@ -214,6 +216,19 @@ async function main() {
 
   console.log("⚡ Executando DDL para criação das tabelas e índices no Turso...");
   await client.executeMultiple(DDL_STATEMENTS);
+  
+  // Safe incremental column additions for existing Turso tables
+  try {
+    await client.execute('ALTER TABLE "Tenant" ADD COLUMN "email" TEXT');
+  } catch (e) {
+    // Column may already exist
+  }
+  try {
+    await client.execute('ALTER TABLE "Part" ADD COLUMN "unit" TEXT DEFAULT "UN"');
+  } catch (e) {
+    // Column may already exist
+  }
+
   console.log("✅ Tabelas e índices criados com sucesso no Turso!");
 
   console.log("🏍️ Populando dados iniciais (Seed) via Prisma + Turso Adapter...");
@@ -228,6 +243,7 @@ async function main() {
         plan: t.plan,
         phone: t.phone,
         cnpj: t.cnpj,
+        email: t.email,
         address: t.address,
         status: t.status || "ACTIVE",
         totalRevenue: t.totalRevenue || 0,
@@ -251,6 +267,7 @@ async function main() {
         plan: t.plan,
         phone: t.phone,
         cnpj: t.cnpj,
+        email: t.email,
         address: t.address,
         status: t.status || "ACTIVE",
         totalRevenue: t.totalRevenue || 0,
@@ -373,6 +390,7 @@ async function main() {
         category: p.category,
         costPrice: p.costPrice,
         salePrice: p.salePrice,
+        unit: p.unit || "UN",
         stockQty: p.stockQty,
         minStock: p.minStock,
         location: p.location,
@@ -387,6 +405,7 @@ async function main() {
         category: p.category,
         costPrice: p.costPrice,
         salePrice: p.salePrice,
+        unit: p.unit || "UN",
         stockQty: p.stockQty,
         minStock: p.minStock,
         location: p.location,

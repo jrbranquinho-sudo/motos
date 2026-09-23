@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Building2,
   TrendingUp,
@@ -26,6 +26,8 @@ import {
   Sparkles,
   AlertOctagon,
   AlertTriangle,
+  Edit3,
+  Power,
 } from "lucide-react";
 import { useMotoShop } from "@/lib/store";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -42,7 +44,16 @@ const PLAN_PRICES: Record<string, number> = {
 };
 
 export function SaasOwnerDashboard() {
-  const { tenants, setTenant, tenant: currentTenant, currentUser, users, addTenant } = useMotoShop();
+  const {
+    tenants,
+    setTenant,
+    tenant: currentTenant,
+    currentUser,
+    users,
+    addTenant,
+    updateTenant,
+    toggleTenantStatus,
+  } = useMotoShop();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPlanFilter, setSelectedPlanFilter] = useState<string>("ALL");
 
@@ -61,7 +72,58 @@ export function SaasOwnerDashboard() {
   const [ownerUsername, setOwnerUsername] = useState("");
   const [ownerPhone, setOwnerPhone] = useState("");
 
+  // Edit Workshop Modal States
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editSlug, setEditSlug] = useState("");
+  const [editCnpj, setEditCnpj] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editAddress, setEditAddress] = useState("");
+  const [editPlan, setEditPlan] = useState<Plan>("MONTHLY");
+
   const [feedbackMsg, setFeedbackMsg] = useState("");
+
+  // Global ESC key listener to close modals
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsAddModalOpen(false);
+        setIsEditModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const handleOpenEdit = (t: Tenant) => {
+    setEditingTenant(t);
+    setEditName(t.name);
+    setEditSlug(t.slug);
+    setEditCnpj(t.cnpj || "");
+    setEditPhone(t.phone || "");
+    setEditEmail(t.email || "");
+    setEditAddress(t.address || "");
+    setEditPlan(t.plan);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTenant) return;
+    updateTenant(editingTenant.id, {
+      name: editName.trim(),
+      slug: editSlug.trim().toLowerCase(),
+      cnpj: editCnpj.trim() || undefined,
+      phone: editPhone.trim() || undefined,
+      email: editEmail.trim() || undefined,
+      address: editAddress.trim() || undefined,
+      plan: editPlan,
+    });
+    setFeedbackMsg(`Oficina "${editName}" atualizada com sucesso!`);
+    setIsEditModalOpen(false);
+  };
 
   // Calculate SaaS Global Metrics
   const totalTenantsCount = tenants.length;
@@ -316,8 +378,17 @@ export function SaasOwnerDashboard() {
                         {t.name.slice(0, 1)}
                       </span>
                       <div>
-                        <h4 className="text-base font-bold text-white flex items-center gap-2">
+                        <h4 className="text-base font-bold text-white flex items-center gap-2 flex-wrap">
                           <span>{t.name}</span>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                              t.status === "SUSPENDED"
+                                ? "bg-red-500/15 text-red-400 border border-red-500/30"
+                                : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                            }`}
+                          >
+                            {t.status === "SUSPENDED" ? "Desativada" : "Ativa"}
+                          </span>
                           {isCurrent && (
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">
                               Oficina Ativa
@@ -348,7 +419,7 @@ export function SaasOwnerDashboard() {
                     </div>
                     <p className="text-zinc-300 font-mono text-[11px] flex items-center gap-1.5">
                       <Mail className="w-3 h-3 text-zinc-500" />
-                      <span>{owner?.email || "dono@oficina.com.br"}</span>
+                      <span>{owner?.email || t.email || "dono@oficina.com.br"}</span>
                     </p>
                     <div className="flex items-center justify-between text-[11px] text-zinc-400 pt-1 border-t border-zinc-800">
                       <span>Usuário: <strong className="text-zinc-200 font-mono">{owner?.username || "admin"}</strong></span>
@@ -361,7 +432,7 @@ export function SaasOwnerDashboard() {
                   {/* Plan & Subscription */}
                   <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800/80 space-y-1 text-xs min-w-[170px]">
                     <div className="flex items-center justify-between">
-                      <span className="text-zinc-500">Plano Contratado:</span>
+                      <span className="text-zinc-500">Plano:</span>
                       <span
                         className={`font-mono font-bold px-2 py-0.5 rounded text-[10px] ${
                           t.plan === "ENTERPRISE"
@@ -409,8 +480,34 @@ export function SaasOwnerDashboard() {
                     </div>
                   </div>
 
-                  {/* Actions: Switch to Tenant */}
-                  <div className="flex items-center justify-end">
+                  {/* Actions: Edit, Activate/Deactivate, Switch */}
+                  <div className="flex items-center gap-2 justify-end flex-wrap xl:flex-col xl:items-end">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEdit(t)}
+                        className="px-3 py-2 rounded-xl font-bold text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 flex items-center gap-1.5 transition-colors border border-zinc-700"
+                        title="Editar dados da oficina (ESC fecha)"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-zinc-400" />
+                        <span>Editar</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => toggleTenantStatus(t.id)}
+                        className={`px-3 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors border ${
+                          t.status === "SUSPENDED"
+                            ? "bg-emerald-950/40 text-emerald-400 border-emerald-500/40 hover:bg-emerald-900/50"
+                            : "bg-zinc-900 text-zinc-300 border-zinc-700 hover:bg-red-950/40 hover:text-red-400 hover:border-red-500/40"
+                        }`}
+                        title={t.status === "SUSPENDED" ? "Reativar oficina" : "Desativar oficina"}
+                      >
+                        <Power className="w-3.5 h-3.5" />
+                        <span>{t.status === "SUSPENDED" ? "Ativar" : "Desativar"}</span>
+                      </button>
+                    </div>
+
                     <button
                       onClick={() => {
                         setTenant(t);
@@ -433,10 +530,10 @@ export function SaasOwnerDashboard() {
         </div>
       </div>
 
-      {/* Modal Cadastrar Nova Oficina Contratante */}
+      {/* Modal Cadastrar Nova Oficina Contratante (Scrollable, Top-Visible, ESC enabled) */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl space-y-6 my-8">
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl space-y-6 my-auto max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-400">
@@ -452,7 +549,8 @@ export function SaasOwnerDashboard() {
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
-                className="text-zinc-500 hover:text-white"
+                className="text-zinc-500 hover:text-white p-1 rounded-lg hover:bg-zinc-800"
+                title="Fechar (ESC)"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -515,6 +613,8 @@ export function SaasOwnerDashboard() {
                       onChange={(e) => setPlan(e.target.value as Plan)}
                       className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none"
                     >
+                      <option value="MONTHLY">Plano Mensal (R$ 280/mês)</option>
+                      <option value="ANNUAL">Plano Anual (R$ 2.000/ano)</option>
                       <option value="FREE">Plano Free (R$ 0/mês)</option>
                       <option value="STARTER">Plano Starter (R$ 79/mês)</option>
                       <option value="PRO">Plano Pro (R$ 149/mês)</option>
@@ -606,7 +706,7 @@ export function SaasOwnerDashboard() {
                     <span>Senha Inicial Padrão: mot-os123</span>
                   </div>
                   <p className="text-[11px] text-zinc-400 leading-relaxed">
-                    No primeiro acesso do proprietário, o sistema exigirá verificação em 2 etapas (2FA) e a troca obrigatória da senha para um padrão forte de alta segurança.
+                    No primeiro acesso do proprietário, o sistema exigirá verificação em 2 etapas (2FA) e a criação da senha definitiva.
                   </p>
                 </div>
               </div>
@@ -618,13 +718,159 @@ export function SaasOwnerDashboard() {
                   onClick={() => setIsAddModalOpen(false)}
                   className="px-4 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-semibold hover:bg-zinc-700"
                 >
-                  Cancelar
+                  Cancelar (ESC)
                 </button>
                 <button
                   type="submit"
                   className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-bold shadow-md shadow-orange-500/20 active:scale-95 transition-all"
                 >
                   Salvar e Cadastrar Oficina
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Editar Oficina Contratante (Scrollable, Top-Visible, ESC enabled) */}
+      {isEditModalOpen && editingTenant && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl space-y-6 my-auto max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                  <Edit3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Editar Oficina Contratante</h3>
+                  <p className="text-xs text-zinc-400">
+                    Altere os dados cadastrais e o plano da empresa cliente
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="text-zinc-500 hover:text-white p-1 rounded-lg hover:bg-zinc-800"
+                title="Fechar (ESC)"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                    Nome da Oficina *
+                  </label>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-blue-500 focus:outline-none"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                    Subdomínio / Slug *
+                  </label>
+                  <input
+                    type="text"
+                    value={editSlug}
+                    onChange={(e) => setEditSlug(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 font-mono focus:border-blue-500 focus:outline-none"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                    CNPJ da Empresa
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="00.000.000/0001-00"
+                    value={editCnpj}
+                    onChange={(e) => setEditCnpj(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 font-mono focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                    Plano Contratado *
+                  </label>
+                  <select
+                    value={editPlan}
+                    onChange={(e) => setEditPlan(e.target.value as Plan)}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="MONTHLY">Plano Mensal (R$ 280/mês)</option>
+                    <option value="ANNUAL">Plano Anual (R$ 2.000/ano)</option>
+                    <option value="FREE">Plano Free (R$ 0/mês)</option>
+                    <option value="STARTER">Plano Starter (R$ 79/mês)</option>
+                    <option value="PRO">Plano Pro (R$ 149/mês)</option>
+                    <option value="ENTERPRISE">Plano Enterprise (R$ 399/mês)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                    Telefone de Contato
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="(11) 98765-4321"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 font-mono focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                    E-mail Comercial
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="contato@oficina.com.br"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                    Endereço Comercial
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Rua / Av., Número, Bairro, Cidade - UF"
+                    value={editAddress}
+                    onChange={(e) => setEditAddress(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-semibold hover:bg-zinc-700"
+                >
+                  Cancelar (ESC)
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 active:scale-95 transition-all"
+                >
+                  Salvar Alterações
                 </button>
               </div>
             </form>

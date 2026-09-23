@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Package,
@@ -15,6 +15,7 @@ import {
   MapPin,
   Edit2,
   CheckCircle,
+  X,
 } from "lucide-react";
 import { useMotoShop } from "@/lib/store";
 import { Part } from "@/lib/types";
@@ -32,6 +33,7 @@ export default function StockPage() {
   const [newName, setNewName] = useState("");
   const [newBrand, setNewBrand] = useState("");
   const [newCategory, setNewCategory] = useState("Lubrificantes");
+  const [newUnit, setNewUnit] = useState<"UN" | "PÇ" | "BD" | "KT">("UN");
   const [newCostPrice, setNewCostPrice] = useState(25);
   const [newSalePrice, setNewSalePrice] = useState(45);
   const [newStockQty, setNewStockQty] = useState(10);
@@ -43,6 +45,18 @@ export default function StockPage() {
   const [adjustQty, setAdjustQty] = useState(1);
   const [adjustType, setAdjustType] = useState<"ADD" | "SUB">("ADD");
   const [adjustReason, setAdjustReason] = useState("Entrada de mercadoria (NF)");
+
+  // Close modals with ESC key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsAddModalOpen(false);
+        setAdjustingPart(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const tenantParts = parts.filter((p) => p.tenantId === tenant.id);
 
@@ -118,6 +132,7 @@ export default function StockPage() {
       name: newName,
       brand: newBrand || undefined,
       category: newCategory,
+      unit: newUnit,
       costPrice: Number(newCostPrice) || 0,
       salePrice: Number(newSalePrice) || 0,
       stockQty: Number(newStockQty) || 0,
@@ -130,6 +145,7 @@ export default function StockPage() {
     setNewCode("");
     setNewName("");
     setNewBrand("");
+    setNewUnit("UN");
   };
 
   const handleExecuteAdjust = (e: React.FormEvent) => {
@@ -260,22 +276,17 @@ export default function StockPage() {
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-zinc-800 bg-zinc-950/60 text-xs font-bold text-zinc-400 uppercase tracking-wider">
-                <th className="py-3 px-4">Código / Peça</th>
-                <th className="py-3 px-4">Categoria</th>
-                <th className="py-3 px-4 hidden md:table-cell">Localização</th>
-                <th className="py-3 px-4 text-right">Custo</th>
-                <th className="py-3 px-4 text-right">Venda</th>
-                <th className="py-3 px-4 text-right">Margem</th>
-                <th className="py-3 px-4 text-center">Estoque</th>
-                <th className="py-3 px-4 text-right">Ação</th>
+                <th className="py-3.5 px-4 min-w-[240px]">Código / Peça</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Categoria</th>
+                <th className="py-3.5 px-4 hidden md:table-cell whitespace-nowrap">Localização</th>
+                <th className="py-3.5 px-4 text-right whitespace-nowrap">Preço Venda</th>
+                <th className="py-3.5 px-4 text-center whitespace-nowrap">Estoque</th>
+                <th className="py-3.5 px-4 text-right whitespace-nowrap">Ação</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/60">
               {filteredParts.map((part) => {
                 const isLow = part.stockQty <= part.minStock;
-                const margin = Math.round(
-                  ((part.salePrice - part.costPrice) / part.costPrice) * 100
-                );
 
                 return (
                   <tr
@@ -284,9 +295,9 @@ export default function StockPage() {
                       isLow ? "bg-red-500/5" : ""
                     }`}
                   >
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold bg-zinc-800 text-orange-400 px-2 py-0.5 rounded border border-zinc-700">
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-2.5">
+                        <span className="font-mono text-xs font-bold bg-zinc-800 text-orange-400 px-2 py-0.5 rounded border border-zinc-700 whitespace-nowrap">
                           {part.code}
                         </span>
                         <div>
@@ -297,8 +308,8 @@ export default function StockPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-xs text-zinc-300">{part.category}</td>
-                    <td className="py-3 px-4 hidden md:table-cell text-xs text-zinc-400">
+                    <td className="py-3.5 px-4 text-xs text-zinc-300 whitespace-nowrap">{part.category}</td>
+                    <td className="py-3.5 px-4 hidden md:table-cell text-xs text-zinc-400 whitespace-nowrap">
                       {part.location ? (
                         <span className="flex items-center gap-1">
                           <MapPin className="w-3 h-3 text-zinc-500" />
@@ -308,33 +319,27 @@ export default function StockPage() {
                         "-"
                       )}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono text-xs text-zinc-400">
-                      {formatCurrency(part.costPrice)}
-                    </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-zinc-100">
+                    <td className="py-3.5 px-4 text-right font-mono font-bold text-zinc-100 whitespace-nowrap">
                       {formatCurrency(part.salePrice)}
                     </td>
-                    <td className="py-3 px-4 text-right font-mono text-xs text-emerald-400 font-semibold">
-                      +{margin}%
-                    </td>
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-3.5 px-4 text-center whitespace-nowrap">
                       <span
-                        className={`font-mono text-xs font-bold px-2.5 py-1 rounded-full border ${
+                        className={`font-mono text-xs font-bold px-3 py-1 rounded-full border whitespace-nowrap inline-flex items-center gap-1 ${
                           isLow
                             ? "bg-red-500/20 text-red-400 border-red-500/40 animate-pulse"
                             : "bg-zinc-800 text-zinc-300 border-zinc-700"
                         }`}
                       >
-                        {part.stockQty} unid
+                        {part.stockQty} {part.unit || "UN"}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right">
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
                       <button
                         onClick={() => {
                           setAdjustingPart(part);
                           setAdjustQty(1);
                         }}
-                        className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-orange-500 text-zinc-300 hover:text-white text-xs font-semibold transition-colors"
+                        className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-orange-500 text-zinc-300 hover:text-white text-xs font-semibold transition-colors"
                       >
                         Ajustar Qtd
                       </button>
@@ -349,12 +354,22 @@ export default function StockPage() {
 
       {/* Modal Ajuste Rápido de Estoque */}
       {adjustingPart && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <ArrowRightLeft className="w-5 h-5 text-orange-400" />
-              <span>Ajustar Estoque de Peça</span>
-            </h3>
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4 my-auto max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <ArrowRightLeft className="w-5 h-5 text-orange-400" />
+                <span>Ajustar Estoque de Peça</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setAdjustingPart(null)}
+                className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                title="Fechar (ESC)"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
             <div className="p-3 bg-zinc-950 rounded-xl text-xs space-y-1">
               <p className="font-bold text-white">{adjustingPart.name}</p>
@@ -362,7 +377,7 @@ export default function StockPage() {
                 Código: <span className="font-mono text-orange-400">{adjustingPart.code}</span>
               </p>
               <p className="text-zinc-400">
-                Estoque Atual: <span className="font-bold text-white">{adjustingPart.stockQty}</span>
+                Estoque Atual: <span className="font-bold text-white">{adjustingPart.stockQty} {adjustingPart.unit || "UN"}</span>
               </p>
             </div>
 
@@ -399,7 +414,7 @@ export default function StockPage() {
               </div>
 
               <div>
-                <label className="text-xs text-zinc-400 block mb-1">Quantidade a movimentar:</label>
+                <label className="text-xs text-zinc-400 block mb-1">Quantidade a movimentar ({adjustingPart.unit || "UN"}):</label>
                 <input
                   type="number"
                   min="1"
@@ -421,13 +436,13 @@ export default function StockPage() {
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-800">
                 <button
                   type="button"
                   onClick={() => setAdjustingPart(null)}
-                  className="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 text-xs font-semibold"
+                  className="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 text-xs font-semibold hover:bg-zinc-700"
                 >
-                  Cancelar
+                  Cancelar (ESC)
                 </button>
                 <button
                   type="submit"
@@ -443,12 +458,22 @@ export default function StockPage() {
 
       {/* Modal Cadastro de Nova Peça */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Package className="w-5 h-5 text-orange-400" />
-              <span>Cadastrar Nova Peça no Estoque</span>
-            </h3>
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4 my-auto max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Package className="w-5 h-5 text-orange-400" />
+                <span>Cadastrar Nova Peça no Estoque</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(false)}
+                className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                title="Fechar (ESC)"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
             <form onSubmit={handleAddPart} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
@@ -495,16 +520,29 @@ export default function StockPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="text-xs text-zinc-400 block mb-1">Marca / Fabricante</label>
                   <input
                     type="text"
-                    placeholder="Ex: Cobreq, Motul, NGK"
+                    placeholder="Ex: Cobreq, Motul"
                     value={newBrand}
                     onChange={(e) => setNewBrand(e.target.value)}
                     className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100"
                   />
+                </div>
+                <div>
+                  <label className="text-xs text-zinc-400 block mb-1">Unidade Comercial *</label>
+                  <select
+                    value={newUnit}
+                    onChange={(e) => setNewUnit(e.target.value as any)}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 font-bold text-orange-400"
+                  >
+                    <option value="UN">UN (Unidade)</option>
+                    <option value="PÇ">PÇ (Peça)</option>
+                    <option value="BD">BD (Balde / Frasco / Litro)</option>
+                    <option value="KT">KT (Kit / Conjunto)</option>
+                  </select>
                 </div>
                 <div>
                   <label className="text-xs text-zinc-400 block mb-1">Localização Física</label>
@@ -565,7 +603,7 @@ export default function StockPage() {
                   onClick={() => setIsAddModalOpen(false)}
                   className="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 text-xs font-semibold hover:bg-zinc-700"
                 >
-                  Cancelar
+                  Cancelar (ESC)
                 </button>
                 <button
                   type="submit"

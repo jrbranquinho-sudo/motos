@@ -2,7 +2,7 @@
 
 import React, { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   Bike,
   Search,
@@ -19,6 +19,7 @@ import { formatPlate } from "@/lib/utils";
 import { getBrandsByCategory, getModelsByBrand, VehicleCategory } from "@/lib/vehicleCatalog";
 
 function VehiclesListContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const initialPlate = searchParams.get("plate") || "";
 
@@ -26,6 +27,17 @@ function VehiclesListContent() {
   const [searchTerm, setSearchTerm] = useState(initialPlate);
   const [brandFilter, setBrandFilter] = useState("ALL");
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Close modal on ESC key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // New vehicle form state with dynamic catalog
   const [newCategory, setNewCategory] = useState<VehicleCategory>("MOTO");
@@ -203,7 +215,8 @@ function VehiclesListContent() {
           return (
             <div
               key={vehicle.id}
-              className="p-5 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-orange-500/40 shadow-lg transition-all flex flex-col justify-between group"
+              onClick={() => router.push(`/vehicles/${vehicle.id}`)}
+              className="p-5 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-orange-500/50 shadow-lg transition-all flex flex-col justify-between group cursor-pointer"
             >
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -254,7 +267,10 @@ function VehiclesListContent() {
               </div>
 
               {/* Action buttons */}
-              <div className={`grid ${isMechanic ? "grid-cols-1" : "grid-cols-2"} gap-2 mt-4 pt-3 border-t border-zinc-800/80`}>
+              <div
+                className={`grid ${isMechanic ? "grid-cols-1" : "grid-cols-2"} gap-2 mt-4 pt-3 border-t border-zinc-800/80`}
+                onClick={(e) => e.stopPropagation()}
+              >
                 {!isMechanic && (
                   <Link
                     href={`/orders/new?vehicleId=${vehicle.id}`}
@@ -284,10 +300,10 @@ function VehiclesListContent() {
         </div>
       )}
 
-      {/* Modal Cadastro de Moto */}
+      {/* Modal Cadastro de Moto (Responsive, Scrollable, ESC enabled) */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 my-auto max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
               <Bike className="w-5 h-5 text-orange-400" />
               <span>Cadastrar Novo Veículo</span>

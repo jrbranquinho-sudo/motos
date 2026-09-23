@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Users,
@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Wrench,
   Building2,
+  X,
 } from "lucide-react";
 import { useMotoShop } from "@/lib/store";
 import { Role, User } from "@/lib/types";
@@ -59,6 +60,17 @@ export default function EmployeesPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
+
+  // Close modal on ESC key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Form states
   const [name, setName] = useState("");
@@ -372,7 +384,8 @@ export default function EmployeesPage() {
           return (
             <div
               key={user.id}
-              className="p-5 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-zinc-700 shadow-xl flex flex-col justify-between group transition-all"
+              onClick={() => handleOpenEdit(user)}
+              className="p-5 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-orange-500/50 shadow-xl flex flex-col justify-between group transition-all cursor-pointer"
             >
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -440,12 +453,22 @@ export default function EmployeesPage() {
 
       {/* Modal Cadastrar / Editar Funcionário */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Users className="w-5 h-5 text-orange-400" />
-              <span>{editingUserId ? "Editar Funcionário" : "Cadastrar Novo Funcionário"}</span>
-            </h3>
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 my-auto max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Users className="w-5 h-5 text-orange-400" />
+                <span>{editingUserId ? "Editar Funcionário" : "Cadastrar Novo Funcionário"}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                title="Fechar (ESC)"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
             <form onSubmit={handleSave} className="space-y-3">
               <div>
@@ -515,7 +538,7 @@ export default function EmployeesPage() {
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 text-xs font-semibold hover:bg-zinc-700"
                 >
-                  Cancelar
+                  Cancelar (ESC)
                 </button>
                 <button
                   type="submit"

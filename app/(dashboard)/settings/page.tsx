@@ -49,6 +49,15 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 3000);
   };
 
+  const handleCancel = () => {
+    setName(tenant.name);
+    setSlug(tenant.slug);
+    setCnpj(tenant.cnpj || "");
+    setPhone(tenant.phone || "");
+    setAddress(tenant.address || "");
+    setSaved(false);
+  };
+
   return (
     <div className="space-y-6 max-w-3xl mx-auto pb-16">
       <div>
@@ -131,7 +140,14 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="pt-4 border-t border-zinc-800 flex justify-end">
+        <div className="pt-4 border-t border-zinc-800 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={handleCancel}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-sm transition-colors"
+          >
+            <span>Cancelar</span>
+          </button>
           <button
             type="submit"
             className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm shadow-md shadow-orange-500/20 active:scale-95 transition-all"

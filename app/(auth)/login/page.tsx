@@ -1,25 +1,26 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Wrench,
   ArrowRight,
   ShieldCheck,
-  UserCheck,
   Lock,
   User as UserIcon,
-  Building2,
   AlertTriangle,
   KeyRound,
   Sparkles,
-  AlertOctagon,
   CalendarX,
   CreditCard,
   Check,
   RefreshCw,
   X,
+  Smartphone,
+  Eye,
+  EyeOff,
+  Copy,
 } from "lucide-react";
 import { useMotoShop } from "@/lib/store";
 import { getSubscriptionInfo, SubscriptionInfo } from "@/lib/subscription";
@@ -27,11 +28,28 @@ import { Tenant, User } from "@/lib/types";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { tenant, tenants, setTenant, users, setCurrentUser, renewSubscription } = useMotoShop();
+  const { tenant, tenants, setTenant, users, updateUser, login, renewSubscription } = useMotoShop();
 
-  const [identifier, setIdentifier] = useState("jrbranquinho");
-  const [password, setPassword] = useState("mot-os123");
+  // Steps: 'CREDENTIALS' -> '2FA' -> 'FIRST_PASSWORD_CHANGE'
+  const [step, setStep] = useState<"CREDENTIALS" | "2FA" | "FIRST_PASSWORD_CHANGE">("CREDENTIALS");
+
+  // Credential inputs (clean, no auto-fill)
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+
+  // Authenticated candidate user
+  const [candidateUser, setCandidateUser] = useState<User | null>(null);
+
+  // 2FA state
+  const [twoFactorCode, setTwoFactorCode] = useState("");
+  const [simulatedToken, setSimulatedToken] = useState("660284");
+  const [copiedToken, setCopiedToken] = useState(false);
+
+  // First password change state
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Expired plan modal state
   const [expiredBlock, setExpiredBlock] = useState<{
@@ -42,43 +60,44 @@ export default function LoginPage() {
   const [selectedPlan, setSelectedPlan] = useState<"MONTHLY" | "ANNUAL">("ANNUAL");
   const [isRenewing, setIsRenewing] = useState(false);
 
-  const checkSubscriptionAndProceed = (targetUser: User, targetTenant: Tenant) => {
-    // SaaS Master owner is never blocked by client subscription
-    if (targetUser.role === "SUPER_ADMIN") {
-      setCurrentUser(targetUser);
-      if (targetTenant.id !== tenant.id) {
-        setTenant(targetTenant);
+  // Close modals or go back on ESC key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (expiredBlock) {
+          setExpiredBlock(null);
+        } else if (step === "2FA") {
+          setStep("CREDENTIALS");
+          setErrorMsg("");
+        }
       }
-      router.push("/dashboard");
-      return;
-    }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [expiredBlock, step]);
 
-    const subInfo = getSubscriptionInfo(targetTenant);
-    if (subInfo.isExpired) {
-      // Block login and open warning/renewal modal
-      setExpiredBlock({
-        tenant: targetTenant,
-        user: targetUser,
-        subInfo,
-      });
-      return;
-    }
-
-    // Normal access
-    setCurrentUser(targetUser);
-    if (targetTenant.id !== tenant.id) {
-      setTenant(targetTenant);
-    }
-    router.push("/dashboard");
+  // Generate random token when entering 2FA
+  const handleProceedTo2FA = (user: User) => {
+    const randomCode = Math.floor(100000 + Math.random() * 900000).toString();
+    setSimulatedToken(randomCode);
+    setTwoFactorCode("");
+    setCandidateUser(user);
+    setStep("2FA");
+    setErrorMsg("");
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleCredentialsSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
     setExpiredBlock(null);
 
     const clean = identifier.trim().toLowerCase();
     const cleanPass = password.trim();
+
+    if (!clean || !cleanPass) {
+      setErrorMsg("Preencha usuário/e-mail e senha para continuar.");
+      return;
+    }
 
     const foundUser = users.find(
       (u) =>
@@ -93,29 +112,92 @@ export default function LoginPage() {
 
     const expectedPass = foundUser.password || "mot-os123";
     if (cleanPass !== expectedPass) {
-      setErrorMsg("Senha incorreta. Para novos acessos, a senha padrão é mot-os123.");
+      setErrorMsg("Senha incorreta. Verifique suas credenciais.");
       return;
     }
 
+    // Check subscription if workshop user
     const targetTenant = tenants.find((t) => t.id === foundUser.tenantId) || tenant;
-    checkSubscriptionAndProceed(foundUser, targetTenant);
+    if (foundUser.role !== "SUPER_ADMIN") {
+      const subInfo = getSubscriptionInfo(targetTenant);
+      if (subInfo.isExpired) {
+        setExpiredBlock({
+          tenant: targetTenant,
+          user: foundUser,
+          subInfo,
+        });
+        return;
+      }
+    }
+
+    // Advance to 2FA verification step
+    handleProceedTo2FA(foundUser);
   };
 
-  const handleQuickLogin = (userIdentifier: string) => {
+  const handle2FASubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     setErrorMsg("");
-    setExpiredBlock(null);
 
-    const clean = userIdentifier.toLowerCase();
-    const found = users.find(
-      (u) =>
-        (u.username && u.username.toLowerCase() === clean) ||
-        u.email.toLowerCase() === clean
-    );
-
-    if (found) {
-      const targetTenant = tenants.find((t) => t.id === found.tenantId) || tenant;
-      checkSubscriptionAndProceed(found, targetTenant);
+    const cleanCode = twoFactorCode.trim().replace(/\D/g, "");
+    if (cleanCode.length !== 6) {
+      setErrorMsg("Digite o código de 6 dígitos recebido.");
+      return;
     }
+
+    if (!candidateUser) return;
+
+    // Check if first login requires changing password
+    if (candidateUser.mustChangePassword) {
+      setStep("FIRST_PASSWORD_CHANGE");
+      return;
+    }
+
+    // Finish login directly
+    login(candidateUser);
+    router.push("/dashboard");
+  };
+
+  const handlePasswordChangeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+
+    if (!candidateUser) return;
+
+    if (newPassword.length < 6) {
+      setErrorMsg("A nova senha deve ter no mínimo 6 caracteres.");
+      return;
+    }
+
+    if (newPassword === "mot-os123" || newPassword === "123") {
+      setErrorMsg("A nova senha não pode ser a senha provisória padrão.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setErrorMsg("A confirmação de senha não confere.");
+      return;
+    }
+
+    // Update user: save new password and disable mustChangePassword
+    updateUser(candidateUser.id, {
+      password: newPassword,
+      mustChangePassword: false,
+    });
+
+    const updatedUser: User = {
+      ...candidateUser,
+      password: newPassword,
+      mustChangePassword: false,
+    };
+
+    login(updatedUser);
+    router.push("/dashboard");
+  };
+
+  const handleCopyToken = () => {
+    setTwoFactorCode(simulatedToken);
+    setCopiedToken(true);
+    setTimeout(() => setCopiedToken(false), 2000);
   };
 
   const handleRenewAndUnlock = () => {
@@ -123,11 +205,10 @@ export default function LoginPage() {
     setIsRenewing(true);
     setTimeout(() => {
       renewSubscription(expiredBlock.tenant.id, selectedPlan);
-      setCurrentUser(expiredBlock.user);
-      setTenant(expiredBlock.tenant);
       setIsRenewing(false);
+      const unlockedUser = expiredBlock.user;
       setExpiredBlock(null);
-      router.push("/dashboard");
+      handleProceedTo2FA(unlockedUser);
     }, 700);
   };
 
@@ -140,192 +221,284 @@ export default function LoginPage() {
             <Wrench className="w-7 h-7" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Entrar no MotoShop SaaS
+            MotoShop SaaS
           </h1>
           <p className="text-xs sm:text-sm text-zinc-400">
-            Acesse a gestão da sua oficina mecânica ou administração da plataforma
+            {tenant.name || "Rota 66 Custom & Oficina"} • Portal de Acesso Seguro
           </p>
         </div>
 
-        {/* Highlight Banner: Master First Access Instructions */}
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-950/40 via-zinc-900 to-zinc-950 border border-purple-500/40 shadow-xl space-y-2">
-          <div className="flex items-center gap-2 text-xs font-bold text-purple-300">
-            <Sparkles className="w-4 h-4 text-purple-400" />
-            <span>Primeiro Acesso • Dono do SaaS (Master)</span>
-          </div>
-          <p className="text-xs text-zinc-300 leading-relaxed">
-            Usuário Master: <strong className="text-purple-300 font-mono">jrbranquinho</strong> • Senha padrão inicial: <strong className="text-orange-400 font-mono">mot-os123</strong>
-          </p>
-          <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 pt-1 border-t border-purple-900/40">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span>Exige autenticação 2FA e criação de nova senha forte no 1º login.</span>
-          </div>
-        </div>
-
-        {/* Login Form Card */}
-        <div className="p-6 rounded-2xl bg-zinc-900/90 border border-zinc-800 shadow-2xl space-y-5">
-          {/* Tenant Selector */}
-          <div>
-            <label className="text-xs font-bold text-zinc-400 block mb-1">
-              Oficina Selecionada
-            </label>
-            <select
-              value={tenant.id}
-              onChange={(e) => {
-                const found = tenants.find((t) => t.id === e.target.value);
-                if (found) setTenant(found);
-              }}
-              className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 font-semibold focus:border-orange-500 focus:outline-none"
-            >
-              {tenants.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name} ({t.slug}.motoshop.com)
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {errorMsg && (
-            <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-semibold flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
-              <span>{errorMsg}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleLogin} className="space-y-4">
+        {/* STEP 1: CREDENTIALS */}
+        {step === "CREDENTIALS" && (
+          <div className="p-6 rounded-2xl bg-zinc-900/90 border border-zinc-800 shadow-2xl space-y-5">
             <div>
-              <label className="text-xs font-bold text-zinc-400 block mb-1">
-                Usuário ou E-mail
-              </label>
-              <div className="relative">
+              <h2 className="text-lg font-bold text-white">Identificação</h2>
+              <p className="text-xs text-zinc-400">
+                Insira suas credenciais para autenticar
+              </p>
+            </div>
+
+            {errorMsg && (
+              <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-semibold flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCredentialsSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-zinc-400 block mb-1">
+                  Usuário ou E-mail
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="ex: marcos@rota66.com.br ou jrbranquinho"
+                    value={identifier}
+                    onChange={(e) => {
+                      setIdentifier(e.target.value);
+                      setErrorMsg("");
+                    }}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none"
+                    autoFocus
+                    required
+                  />
+                  <UserIcon className="w-4 h-4 text-zinc-500 absolute left-3 top-3" />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-zinc-400 block mb-1">
+                  Senha
+                </label>
+                <div className="relative">
+                  <input
+                    type="password"
+                    placeholder="Sua senha de acesso"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setErrorMsg("");
+                    }}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none"
+                    required
+                  />
+                  <Lock className="w-4 h-4 text-zinc-500 absolute left-3 top-3" />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm shadow-lg shadow-orange-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <span>Prosseguir para 2FA</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </form>
+
+            <div className="pt-3 border-t border-zinc-800 flex items-center justify-between text-[11px] text-zinc-500">
+              <span className="flex items-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                Autenticação em 2 Etapas Ativa
+              </span>
+              <span>Pressione ESC para cancelar</span>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 2: 2FA VERIFICATION */}
+        {step === "2FA" && (
+          <div className="p-6 rounded-2xl bg-zinc-900/90 border border-zinc-800 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>2FA Obrigatório</span>
+                </div>
+                <h2 className="text-lg font-bold text-white mt-1">Código de Segurança</h2>
+                <p className="text-xs text-zinc-400">
+                  Olá, <strong>{candidateUser?.name}</strong>. Confirme o código de verificação.
+                </p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
+                <Smartphone className="w-5 h-5" />
+              </div>
+            </div>
+
+            {/* Helper Token Card for easy sales demos */}
+            <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-zinc-500 block">
+                  Token Gerado (SMS / Authenticator)
+                </span>
+                <span className="text-xl font-mono font-black text-emerald-400 tracking-wider">
+                  {simulatedToken}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopyToken}
+                className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-200 transition-colors flex items-center gap-1.5"
+              >
+                {copiedToken ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Inserido!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Inserir Código</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {errorMsg && (
+              <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-semibold flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handle2FASubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-zinc-400 block mb-1">
+                  Digite o código de 6 dígitos
+                </label>
                 <input
                   type="text"
-                  placeholder="ex: jrbranquinho ou joao@motoshow.com.br"
-                  value={identifier}
+                  maxLength={6}
+                  placeholder="000000"
+                  value={twoFactorCode}
                   onChange={(e) => {
-                    setIdentifier(e.target.value);
+                    setTwoFactorCode(e.target.value.replace(/\D/g, ""));
                     setErrorMsg("");
                   }}
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none font-mono"
+                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl py-3 text-center text-2xl font-mono font-bold tracking-[0.3em] text-white focus:border-emerald-500 focus:outline-none"
+                  autoFocus
                   required
                 />
-                <UserIcon className="w-4 h-4 text-zinc-500 absolute left-3 top-3" />
               </div>
-            </div>
 
-            <div>
-              <label className="text-xs font-bold text-zinc-400 block mb-1">
-                Senha de Acesso
-              </label>
-              <div className="relative">
-                <input
-                  type="password"
-                  placeholder="Senha cadastrada"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setErrorMsg("");
-                  }}
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none font-mono"
-                  required
-                />
-                <Lock className="w-4 h-4 text-zinc-500 absolute left-3 top-3" />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm shadow-lg shadow-orange-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
-            >
-              <span>Entrar no Sistema</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </form>
-
-          {/* 1-Click Quick Demo Login Shortcuts */}
-          <div className="pt-4 border-t border-zinc-800 space-y-2">
-            <span className="text-[11px] font-bold uppercase text-zinc-500 block text-center tracking-wider">
-              Acesso Rápido por Perfil (1 Clique)
-            </span>
-
-            <div className="grid grid-cols-1 gap-1.5">
               <button
-                type="button"
-                onClick={() => handleQuickLogin("jrbranquinho")}
-                className="w-full text-left p-2.5 rounded-xl bg-purple-950/20 hover:bg-purple-900/30 text-xs flex items-center justify-between transition-colors border border-purple-500/40 group"
+                type="submit"
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-sm shadow-lg shadow-emerald-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
               >
-                <div>
-                  <span className="font-bold text-purple-300 block">
-                    👑 JR Branquinho (Dono do SaaS Master)
-                  </span>
-                  <span className="text-[10px] text-zinc-500">Usuário: jrbranquinho • Senha: mot-os123</span>
-                </div>
-                <span className="text-[10px] text-purple-400 font-mono font-bold px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/30">
-                  MASTER
-                </span>
+                <span>Validar e Entrar</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
 
               <button
                 type="button"
-                onClick={() => handleQuickLogin("joao@motoshow.com.br")}
-                className="w-full text-left p-2 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-xs flex items-center justify-between transition-colors border border-zinc-800/80"
+                onClick={() => {
+                  setStep("CREDENTIALS");
+                  setErrorMsg("");
+                }}
+                className="w-full py-2 text-center text-xs text-zinc-400 hover:text-white transition-colors"
               >
-                <span className="font-semibold text-zinc-200">João Silva (Dono da Oficina)</span>
-                <span className="text-[10px] text-orange-400 font-mono">ADMIN</span>
+                Voltar para tela inicial (ou pressione ESC)
               </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("paula@motoshow.com.br")}
-                className="w-full text-left p-2 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-xs flex items-center justify-between transition-colors border border-zinc-800/80"
-              >
-                <span className="font-semibold text-zinc-200">Paula Souza (Recepção)</span>
-                <span className="text-[10px] text-blue-400 font-mono">RECEPTIONIST</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("carlao@motoshow.com.br")}
-                className="w-full text-left p-2 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-xs flex items-center justify-between transition-colors border border-zinc-800/80"
-              >
-                <span className="font-semibold text-zinc-200">Carlão Santos (Mecânico da Bancada)</span>
-                <span className="text-[10px] text-emerald-400 font-mono">MECHANIC</span>
-              </button>
-
-              {/* Expired Tenant Quick Demo Button */}
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("marcos@speedracing.com.br")}
-                className="w-full text-left p-2 rounded-lg bg-red-950/20 hover:bg-red-900/30 text-xs flex items-center justify-between transition-colors border border-red-500/40 group"
-              >
-                <div>
-                  <span className="font-semibold text-red-300">Marcos (Oficina c/ Plano Vencido)</span>
-                  <span className="text-[10px] text-zinc-500 block">Speed Racing • Testar bloqueio de login</span>
-                </div>
-                <span className="text-[10px] text-red-400 font-mono font-bold px-2 py-0.5 rounded bg-red-500/10 border border-red-500/30">
-                  VENCIDO
-                </span>
-              </button>
-            </div>
+            </form>
           </div>
-        </div>
+        )}
 
-        {/* Footer link */}
+        {/* STEP 3: FIRST LOGIN PASSWORD CHANGE */}
+        {step === "FIRST_PASSWORD_CHANGE" && (
+          <div className="p-6 rounded-2xl bg-zinc-900/90 border border-zinc-800 shadow-2xl space-y-5">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[11px] font-bold">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Primeiro Acesso Detectado</span>
+              </div>
+              <h2 className="text-lg font-bold text-white mt-1">Crie sua Nova Senha</h2>
+              <p className="text-xs text-zinc-400">
+                Por políticas de segurança, substitua a senha provisória antes de acessar o sistema.
+              </p>
+            </div>
+
+            {errorMsg && (
+              <div className="p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-semibold flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handlePasswordChangeSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-zinc-400 block mb-1">
+                  Nova Senha Definitiva
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Mínimo 6 caracteres"
+                    value={newPassword}
+                    onChange={(e) => {
+                      setNewPassword(e.target.value);
+                      setErrorMsg("");
+                    }}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl pl-9 pr-10 py-2.5 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none"
+                    autoFocus
+                    required
+                  />
+                  <KeyRound className="w-4 h-4 text-zinc-500 absolute left-3 top-3" />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-2.5 text-zinc-500 hover:text-zinc-300"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-zinc-400 block mb-1">
+                  Confirmar Nova Senha
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Repita a nova senha"
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      setErrorMsg("");
+                    }}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl pl-9 pr-3 py-2.5 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none"
+                    required
+                  />
+                  <Lock className="w-4 h-4 text-zinc-500 absolute left-3 top-3" />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm shadow-lg shadow-orange-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <span>Salvar Nova Senha e Abrir Sistema</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* Footer */}
         <div className="text-center text-xs text-zinc-500">
-          Não tem uma conta para sua oficina?{" "}
-          <Link href="/register" className="text-orange-400 font-semibold hover:underline">
-            Cadastrar nova oficina
-          </Link>
+          Oficina Modelo para Demonstração:{" "}
+          <strong className="text-zinc-300">Rota 66 Custom & Oficina</strong>
         </div>
       </div>
 
-      {/* Subscription Expired Blocking Modal */}
+      {/* Subscription Expired Blocking Modal (With ESC close) */}
       {expiredBlock && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="w-full max-w-xl bg-zinc-950 border-2 border-red-500/50 rounded-3xl p-6 sm:p-8 shadow-2xl text-zinc-100 relative">
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-xl bg-zinc-950 border-2 border-red-500/50 rounded-3xl p-6 sm:p-8 shadow-2xl text-zinc-100 relative max-h-[90vh] overflow-y-auto my-auto">
             <button
               onClick={() => setExpiredBlock(null)}
               className="absolute top-4 right-4 p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+              title="Fechar (ESC)"
             >
               <X className="w-5 h-5" />
             </button>
@@ -336,7 +509,7 @@ export default function LoginPage() {
               </div>
 
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-black uppercase tracking-wider">
-                <AlertOctagon className="w-3.5 h-3.5" />
+                <AlertTriangle className="w-3.5 h-3.5" />
                 <span>Login Bloqueado • Assinatura Vencida</span>
               </div>
 
@@ -434,7 +607,7 @@ export default function LoginPage() {
                   onClick={() => setExpiredBlock(null)}
                   className="text-xs text-zinc-400 hover:text-white transition-colors"
                 >
-                  Voltar para tela de login
+                  Fechar janela (ESC)
                 </button>
               </div>
             </div>

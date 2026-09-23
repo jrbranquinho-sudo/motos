@@ -24,9 +24,14 @@ import {
 
 interface MotoShopContextType {
   isLoaded: boolean;
+  isAuthenticated: boolean;
+  login: (user: User) => void;
+  logout: () => void;
   tenant: Tenant;
   tenants: Tenant[];
   setTenant: (tenant: Tenant) => void;
+  updateTenant: (id: string, data: Partial<Tenant>) => void;
+  toggleTenantStatus: (id: string) => void;
   addTenant: (
     tenantData: Omit<Tenant, "id" | "createdAt">,
     ownerData: { name: string; email: string; username?: string; phone?: string }
@@ -110,6 +115,7 @@ const MotoShopContext = createContext<MotoShopContextType | null>(null);
 
 export function MotoShopProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [tenants, setTenants] = useState<Tenant[]>(SEED_TENANTS);
   const [tenant, setTenantState] = useState<Tenant>(SEED_TENANTS[0]);
   const [users, setUsers] = useState<User[]>(SEED_USERS);
@@ -130,6 +136,9 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
+        if (typeof parsed.isAuthenticated === "boolean") {
+          setIsAuthenticated(parsed.isAuthenticated);
+        }
         if (parsed.tenants) setTenants(parsed.tenants);
         if (parsed.currentTenantId) {
           const foundTenant = (parsed.tenants || SEED_TENANTS).find(
@@ -169,6 +178,7 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
     if (!isLoaded) return;
     try {
       const data = {
+        isAuthenticated,
         currentTenantId: tenant.id,
         currentUserId: currentUser.id,
         tenants,
@@ -186,6 +196,7 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
     }
   }, [
     isLoaded,
+    isAuthenticated,
     tenant,
     currentUser,
     tenants,
@@ -198,10 +209,49 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
     stockMovements,
   ]);
 
+  const login = (user: User) => {
+    setCurrentUserState(user);
+    if (user.tenantId) {
+      const foundTenant = tenants.find((t) => t.id === user.tenantId);
+      if (foundTenant) setTenantState(foundTenant);
+    }
+    setIsAuthenticated(true);
+  };
+
+  const logout = () => {
+    setIsAuthenticated(false);
+  };
+
   const setTenant = (t: Tenant) => {
     setTenantState(t);
     const tenantUser = users.find((u) => u.tenantId === t.id) || users[0];
     if (tenantUser) setCurrentUserState(tenantUser);
+  };
+
+  const updateTenant = (id: string, data: Partial<Tenant>) => {
+    setTenants((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, ...data } : t))
+    );
+    setTenantState((prev) => (prev.id === id ? { ...prev, ...data } : prev));
+  };
+
+  const toggleTenantStatus = (id: string) => {
+    setTenants((prev) =>
+      prev.map((t) => {
+        if (t.id === id) {
+          const nextStatus = t.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
+          return { ...t, status: nextStatus };
+        }
+        return t;
+      })
+    );
+    setTenantState((prev) => {
+      if (prev.id === id) {
+        const nextStatus = prev.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
+        return { ...prev, status: nextStatus };
+      }
+      return prev;
+    });
   };
 
   const addTenant = (
@@ -680,9 +730,14 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
     <MotoShopContext.Provider
       value={{
         isLoaded,
+        isAuthenticated,
+        login,
+        logout,
         tenant,
         tenants,
         setTenant,
+        updateTenant,
+        toggleTenantStatus,
         addTenant,
         renewSubscription,
         simulateSubscriptionDays,

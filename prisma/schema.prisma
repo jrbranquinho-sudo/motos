@@ -17,6 +17,7 @@ model Tenant {
   plan                     String         @default("FREE")
   phone                    String?
   cnpj                     String?
+  email                    String?
   address                  String?
   status                   String         @default("ACTIVE")
   totalRevenue             Float          @default(0)
@@ -146,6 +147,7 @@ model Part {
   category       String          // Filtro, freio, motor, etc.
   costPrice      Float
   salePrice      Float
+  unit           String?         @default("UN") // UN, PÇ, BD, KT
   stockQty       Int             @default(0)
   minStock       Int             @default(1) // Estoque mínimo para alerta
   location       String?         // Localização física na prateleira

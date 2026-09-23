@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ClipboardList,
   Plus,
@@ -34,6 +35,7 @@ const KANBAN_COLUMNS: { id: OSStatus; title: string; color: string }[] = [
 ];
 
 export default function OrdersPage() {
+  const router = useRouter();
   const {
     tenant,
     visibleOrders,
@@ -204,7 +206,8 @@ export default function OrdersPage() {
                     return (
                       <div
                         key={order.id}
-                        className="p-3.5 rounded-xl bg-zinc-900/90 border border-zinc-800 hover:border-orange-500/50 shadow-md transition-all group flex flex-col justify-between"
+                        onClick={() => router.push(`/orders/${order.id}`)}
+                        className="p-3.5 rounded-xl bg-zinc-900/90 border border-zinc-800 hover:border-orange-500/50 shadow-md transition-all group flex flex-col justify-between cursor-pointer"
                       >
                         <div>
                           {/* Card top */}
@@ -263,7 +266,7 @@ export default function OrdersPage() {
                             </span>
                           )}
 
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                             {canViewFinancials && (
                               <Link
                                 href={`/orders/${order.id}/print`}
@@ -285,7 +288,7 @@ export default function OrdersPage() {
                         </div>
 
                         {/* Role-specific Next status button */}
-                        <div className="mt-2 pt-2 border-t border-zinc-800/40">
+                        <div className="mt-2 pt-2 border-t border-zinc-800/40" onClick={(e) => e.stopPropagation()}>
                           {/* Mechanic Flow */}
                           {isMechanic ? (
                             column.id === "OPEN" ? (
@@ -372,7 +375,11 @@ export default function OrdersPage() {
                 const statusInfo = STATUS_MAP[order.status];
 
                 return (
-                  <tr key={order.id} className="hover:bg-zinc-800/40 transition-colors">
+                  <tr
+                    key={order.id}
+                    onClick={() => router.push(`/orders/${order.id}`)}
+                    className="hover:bg-zinc-800/60 transition-colors cursor-pointer"
+                  >
                     <td className="py-3.5 px-4 font-mono font-bold text-orange-400">
                       #OS-{order.osNumber}
                     </td>
@@ -407,7 +414,7 @@ export default function OrdersPage() {
                       </td>
                     )}
                     <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                         {canViewFinancials && (
                           <Link
                             href={`/orders/${order.id}/print`}

@@ -1,21 +1,38 @@
-import React from "react";
+"use client";
+
+import React, { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
-import { FirstAccessModal } from "@/components/auth/FirstAccessModal";
 import SubscriptionAlertBanner from "@/components/subscription/SubscriptionAlertBanner";
 import SubscriptionExpiredModal from "@/components/subscription/SubscriptionExpiredModal";
+import { useMotoShop } from "@/lib/store";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { isLoaded, isAuthenticated } = useMotoShop();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoaded && !isAuthenticated) {
+      router.push("/login");
+    }
+  }, [isLoaded, isAuthenticated, router]);
+
+  if (!isLoaded || !isAuthenticated) {
+    return (
+      <div className="flex min-h-screen bg-[#0f0f0f] items-center justify-center">
+        <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-[#0f0f0f]">
-      {/* Mandatory First Access 2FA & Password Change Modal */}
-      <FirstAccessModal />
-
       {/* Expired Subscription Blocking Overlay */}
       <SubscriptionExpiredModal />
 

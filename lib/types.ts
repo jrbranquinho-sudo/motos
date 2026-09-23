@@ -19,6 +19,7 @@ export interface Tenant {
   slug: string;
   plan: Plan;
   phone?: string;
+  email?: string;
   cnpj?: string;
   address?: string;
   createdAt: string;
@@ -140,6 +141,7 @@ export interface Part {
   salePrice: number;
   stockQty: number;
   minStock: number;
+  unit?: "UN" | "PÇ" | "BD" | "KT" | string;
   location?: string;
   tenantId: string;
   supplierId?: string;
