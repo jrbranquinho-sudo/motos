@@ -141,7 +141,7 @@ export interface Part {
   salePrice: number;
   stockQty: number;
   minStock: number;
-  unit?: "UN" | "PÇ" | "BD" | "KT" | string;
+  unit?: "UN" | "PÇ" | "BD" | "FR" | "LT" | "KT" | "CJ" | "KL" | string;
   location?: string;
   tenantId: string;
   supplierId?: string;

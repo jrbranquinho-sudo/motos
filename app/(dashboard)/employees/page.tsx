@@ -86,7 +86,7 @@ export default function EmployeesPage() {
   const [mechanicError, setMechanicError] = useState("");
 
   const isMechanic = currentUser.role === "MECHANIC";
-  const tenantUsers = users.filter((u) => u.tenantId === tenant.id);
+  const tenantUsers = users.filter((u) => u.tenantId === tenant.id && u.role !== "SUPER_ADMIN");
 
   const handleMechanicPasswordChange = (e: React.FormEvent) => {
     e.preventDefault();

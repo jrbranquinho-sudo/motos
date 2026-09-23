@@ -110,7 +110,7 @@ interface MotoShopContextType {
 }
 
 
-const STORAGE_KEY = "motoshop_sistema_v5";
+const STORAGE_KEY = "motoshop_sistema_estavel_v1";
 
 const MotoShopContext = createContext<MotoShopContextType | null>(null);
 
@@ -134,7 +134,7 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
   // Load from LocalStorage
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("motoshop_sistema_v5");
       if (saved) {
         const parsed = JSON.parse(saved);
         if (typeof parsed.isAuthenticated === "boolean") {
@@ -151,14 +151,39 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
           const hasMaster = parsed.users.some(
             (u: User) => u.username === "jrbranquinho" || u.email === "jrbranquinho@motoshop.com.br"
           );
-          const loadedUsers = hasMaster ? parsed.users : [SEED_USERS[0], ...parsed.users];
+          const rawUsers = hasMaster ? parsed.users : [SEED_USERS[0], ...parsed.users];
+          const loadedUsers = rawUsers.map((u: User) => {
+            if (u.id === "user-1" || u.username === "marcos" || u.email === "marcos@rota66.com.br") {
+              return {
+                ...u,
+                name: "Pablo Silva",
+                username: "pablo",
+                email: "pablo@rota66.com.br",
+              };
+            }
+            if (u.role === "SUPER_ADMIN") {
+              return { ...u, tenantId: "platform" };
+            }
+            return u;
+          });
           setUsers(loadedUsers);
         }
         if (parsed.currentUserId) {
           const foundUser = (parsed.users || SEED_USERS).find(
             (u: User) => u.id === parsed.currentUserId
           );
-          if (foundUser) setCurrentUserState(foundUser);
+          if (foundUser) {
+            if (foundUser.id === "user-1" || foundUser.username === "marcos") {
+              setCurrentUserState({
+                ...foundUser,
+                name: "Pablo Silva",
+                username: "pablo",
+                email: "pablo@rota66.com.br",
+              });
+            } else {
+              setCurrentUserState(foundUser);
+            }
+          }
         }
         if (parsed.customers) setCustomers(parsed.customers);
         if (parsed.vehicles) setVehicles(parsed.vehicles);

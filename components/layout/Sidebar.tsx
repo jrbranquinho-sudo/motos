@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useMotoShop } from "@/lib/store";
 import { Role } from "@/lib/types";
+import { formatPlanName } from "@/lib/utils";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -98,8 +99,8 @@ export function Sidebar() {
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-black text-lg text-white tracking-tight">MotoShop</span>
-              <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">
-                {tenant.plan}
+              <span className="text-[10px] font-bold tracking-wider px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                {formatPlanName(tenant.plan)}
               </span>
             </div>
             <p className="text-xs text-zinc-500 font-medium">Gestão de Oficinas</p>
@@ -142,7 +143,7 @@ export function Sidebar() {
                 }`}
               >
                 <span className="truncate">{t.name}</span>
-                <span className="text-[10px] font-mono text-zinc-500">{t.plan}</span>
+                <span className="text-[10px] font-mono text-zinc-500">{formatPlanName(t.plan)}</span>
               </button>
             ))}
           </div>

@@ -299,18 +299,19 @@ async function main() {
 
   // 2. Users
   for (const u of SEED_USERS) {
+    const existing = await prisma.user.findUnique({ where: { id: u.id } });
     await prisma.user.upsert({
       where: { id: u.id },
       update: {
         name: u.name,
         email: u.email,
         username: u.username,
-        password: u.password,
+        password: existing?.password || u.password,
         phone: u.phone,
         avatar: u.avatar,
         role: u.role,
-        mustChangePassword: u.mustChangePassword || false,
-        twoFactorEnabled: u.twoFactorEnabled || false,
+        mustChangePassword: existing ? existing.mustChangePassword : (u.mustChangePassword || false),
+        twoFactorEnabled: existing ? existing.twoFactorEnabled : (u.twoFactorEnabled || false),
         tenantId: u.tenantId,
       },
       create: {

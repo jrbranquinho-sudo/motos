@@ -148,3 +148,22 @@ export function getWhatsAppOSLink(
   const encoded = encodeURIComponent(statusMsg);
   return `https://wa.me/${formattedPhone}?text=${encoded}`;
 }
+
+export function formatPlanName(plan?: string): string {
+  if (!plan) return "Mensal";
+  const p = plan.toUpperCase();
+  if (p === "ANNUAL") return "Anual";
+  if (p === "MONTHLY") return "Mensal";
+  if (p === "FREE") return "Gratuito";
+  if (p === "STARTER") return "Iniciante";
+  if (p === "PRO") return "Profissional";
+  if (p === "ENTERPRISE") return "Empresarial";
+  return plan;
+}
+
+export function formatDecimal(value: number): string {
+  return new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value || 0);
+}

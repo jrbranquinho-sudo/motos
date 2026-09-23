@@ -540,8 +540,12 @@ export default function StockPage() {
                   >
                     <option value="UN">UN (Unidade)</option>
                     <option value="PÇ">PÇ (Peça)</option>
-                    <option value="BD">BD (Balde / Frasco / Litro)</option>
-                    <option value="KT">KT (Kit / Conjunto)</option>
+                    <option value="BD">BD (Balde)</option>
+                    <option value="FR">FR (Frasco)</option>
+                    <option value="LT">LT (Litro)</option>
+                    <option value="KT">KT (Kit)</option>
+                    <option value="CJ">CJ (Conjunto)</option>
+                    <option value="KL">KL (Quilo)</option>
                   </select>
                 </div>
                 <div>

@@ -573,7 +573,7 @@ export function SaasOwnerDashboard() {
                       ✉️ {owner?.email || t.email || "contato@rota66.com.br"}
                     </p>
                     <p className="text-zinc-400 text-[11px] flex items-center justify-between">
-                      <span>Usuário: <strong className="text-zinc-200 font-mono">{owner?.username || "marcos"}</strong></span>
+                      <span>Usuário: <strong className="text-zinc-200 font-mono">{owner?.username || "pablo"}</strong></span>
                       <button
                         type="button"
                         onClick={() => handleOpenEdit(t)}
@@ -988,7 +988,7 @@ export function SaasOwnerDashboard() {
                     </label>
                     <input
                       type="text"
-                      placeholder="ex: marcos"
+                      placeholder="ex: pablo"
                       value={editOwnerUsername}
                       onChange={(e) => setEditOwnerUsername(e.target.value)}
                       className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-purple-300 font-mono focus:border-purple-500 focus:outline-none"
