@@ -233,6 +233,14 @@ async function main() {
 
   console.log("🏍️ Populando dados iniciais (Seed) via Prisma + Turso Adapter...");
 
+  // Garante que apenas a Rota 66 Custom & Oficina (tenant-1) exista no Turso
+  console.log("🧹 Removendo oficinas antigas no Turso para manter exclusivamente a Rota 66...");
+  try {
+    await client.execute("DELETE FROM Tenant WHERE id != 'tenant-1'");
+  } catch (e) {
+    console.warn("Aviso ao limpar tenants antigos:", e);
+  }
+
   // 1. Tenants
   for (const t of SEED_TENANTS) {
     await prisma.tenant.upsert({

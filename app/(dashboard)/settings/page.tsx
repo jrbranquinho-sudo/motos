@@ -91,17 +91,14 @@ export default function SettingsPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-bold text-zinc-400 block mb-1">Subdomínio (Slug) *</label>
-            <div className="flex items-center rounded-xl bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100">
-              <input
-                type="text"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
-                className="w-full bg-transparent focus:outline-none font-mono text-orange-400"
-                required
-              />
-              <span className="text-zinc-500 text-xs select-none">.motoshop.com</span>
-            </div>
+            <label className="text-xs font-bold text-zinc-400 block mb-1">Identificador da Oficina (Slug) *</label>
+            <input
+              type="text"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+              className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-3 text-sm text-orange-400 font-mono focus:border-orange-500 focus:outline-none"
+              required
+            />
           </div>
 
           <div>

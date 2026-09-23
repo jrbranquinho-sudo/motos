@@ -15,6 +15,19 @@ export async function GET(req: NextRequest) {
 
     const users = await prisma.user.findMany({
       where: tenantId ? { tenantId } : undefined,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        username: true,
+        phone: true,
+        avatar: true,
+        role: true,
+        mustChangePassword: true,
+        twoFactorEnabled: true,
+        tenantId: true,
+        createdAt: true,
+      },
     });
 
     const customers = await prisma.customer.findMany({

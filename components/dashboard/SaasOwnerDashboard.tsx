@@ -28,6 +28,7 @@ import {
   AlertTriangle,
   Edit3,
   Power,
+  Trash2,
 } from "lucide-react";
 import { useMotoShop } from "@/lib/store";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -52,10 +53,23 @@ export function SaasOwnerDashboard() {
     users,
     addTenant,
     updateTenant,
+    deleteTenant,
     toggleTenantStatus,
   } = useMotoShop();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPlanFilter, setSelectedPlanFilter] = useState<string>("ALL");
+
+  const handleDeleteTenant = (t: Tenant) => {
+    if (t.id === "tenant-1") {
+      alert("A oficina modelo Rota 66 Custom & Oficina é a vitrine oficial do sistema e não pode ser excluída.");
+      return;
+    }
+    if (confirm(`Tem certeza que deseja excluir permanentemente a oficina "${t.name}"? Todos os veículos, ordens de serviço e usuários desta oficina serão removidos.`)) {
+      deleteTenant(t.id);
+      setFeedbackMsg(`Oficina "${t.name}" excluída com sucesso.`);
+      setTimeout(() => setFeedbackMsg(""), 5000);
+    }
+  };
 
   // New Workshop Modal States
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -199,10 +213,10 @@ export function SaasOwnerDashboard() {
               <Building2 className="w-5 h-5" />
             </span>
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              Painel Global SaaS — Dono da Plataforma
+              Painel Central — Dono da Plataforma
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">
-              SUPER ADMIN
+              GESTOR MASTER
             </span>
           </div>
           <p className="text-sm text-zinc-400">
@@ -364,156 +378,86 @@ export function SaasOwnerDashboard() {
             return (
               <div
                 key={t.id}
-                className={`p-5 rounded-2xl border transition-all ${
+                className={`p-5 sm:p-6 rounded-2xl border transition-all space-y-4 ${
                   isCurrent
-                    ? "bg-zinc-950/80 border-orange-500/40 ring-1 ring-orange-500/20"
-                    : "bg-zinc-950/50 border-zinc-800 hover:border-zinc-700"
+                    ? "bg-zinc-950/80 border-orange-500/40 ring-1 ring-orange-500/20 shadow-xl"
+                    : "bg-zinc-950/50 border-zinc-800 hover:border-zinc-700 shadow-md"
                 }`}
               >
-                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-                  {/* Company Info */}
-                  <div className="space-y-1.5 min-w-[260px]">
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-9 h-9 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 font-black text-sm">
-                        {t.name.slice(0, 1)}
-                      </span>
-                      <div>
-                        <h4 className="text-base font-bold text-white flex items-center gap-2 flex-wrap">
-                          <span>{t.name}</span>
-                          <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                              t.status === "SUSPENDED"
-                                ? "bg-red-500/15 text-red-400 border border-red-500/30"
-                                : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-                            }`}
-                          >
-                            {t.status === "SUSPENDED" ? "Desativada" : "Ativa"}
+                {/* Header do Card: Nome da Empresa e Ações Rápidas */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800/80">
+                  <div className="flex items-center gap-3">
+                    <span className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 font-black text-base shrink-0">
+                      {t.name.slice(0, 1)}
+                    </span>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-base font-bold text-white">{t.name}</h4>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                            t.status === "SUSPENDED"
+                              ? "bg-red-500/15 text-red-400 border border-red-500/30"
+                              : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                          }`}
+                        >
+                          {t.status === "SUSPENDED" ? "Desativada" : "Ativa"}
+                        </span>
+                        {isCurrent && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                            Oficina Atual
                           </span>
-                          {isCurrent && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">
-                              Oficina Ativa
-                            </span>
-                          )}
-                        </h4>
-                        <p className="text-xs text-zinc-400">
-                          {t.slug}.motoshop.com • CNPJ: {t.cnpj || "Não informado"}
-                        </p>
+                        )}
                       </div>
-                    </div>
-                    <p className="text-xs text-zinc-500">
-                      📍 {t.address || "Endereço comercial não cadastrado"}
-                    </p>
-                  </div>
-
-                  {/* Login do Dono da Oficina */}
-                  <div className="p-3.5 rounded-xl bg-zinc-900 border border-purple-500/30 space-y-1.5 text-xs min-w-[260px]">
-                    <span className="text-[10px] text-purple-300 uppercase font-bold tracking-wider flex items-center gap-1.5">
-                      <UserCheck className="w-3.5 h-3.5 text-purple-400" />
-                      Login do Dono da Oficina
-                    </span>
-                    <div className="text-white font-bold flex items-center justify-between">
-                      <span>{owner?.name || t.lastAccessUser || "Proprietário"}</span>
-                      <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                        ADMIN
-                      </span>
-                    </div>
-                    <p className="text-zinc-300 font-mono text-[11px] flex items-center gap-1.5">
-                      <Mail className="w-3 h-3 text-zinc-500" />
-                      <span>{owner?.email || t.email || "dono@oficina.com.br"}</span>
-                    </p>
-                    <div className="flex items-center justify-between text-[11px] text-zinc-400 pt-1 border-t border-zinc-800">
-                      <span>Usuário: <strong className="text-zinc-200 font-mono">{owner?.username || "admin"}</strong></span>
-                      <span className="text-[10px] text-zinc-500 font-mono">
-                        {owner?.phone || t.phone || "-"}
-                      </span>
+                      <p className="text-xs text-zinc-400 font-mono mt-0.5">
+                        CNPJ: {t.cnpj || "Não informado"} • Código: {t.slug}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Plan & Subscription */}
-                  <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800/80 space-y-1 text-xs min-w-[170px]">
-                    <div className="flex items-center justify-between">
-                      <span className="text-zinc-500">Plano:</span>
-                      <span
-                        className={`font-mono font-bold px-2 py-0.5 rounded text-[10px] ${
-                          t.plan === "ENTERPRISE"
-                            ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
-                            : t.plan === "PRO"
-                            ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
-                            : "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                        }`}
-                      >
-                        {t.plan}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-zinc-400">
-                      <span>Mensalidade:</span>
-                      <span className="font-mono font-bold text-zinc-200">
-                        {formatCurrency(PLAN_PRICES[t.plan])}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-zinc-500 text-[11px]">
-                      <span>Cliente desde:</span>
-                      <span>{formatDate(t.createdAt)}</span>
-                    </div>
-                  </div>
+                  {/* Botões de Ação */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEdit(t)}
+                      className="px-3 py-1.5 rounded-xl font-bold text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 flex items-center gap-1.5 transition-colors border border-zinc-700"
+                      title="Editar dados da oficina (ESC fecha)"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-zinc-400" />
+                      <span>Editar</span>
+                    </button>
 
-                  {/* Company Telemetry / Summary */}
-                  <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800/80 space-y-1 text-xs min-w-[180px]">
-                    <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider block">
-                      Movimentação Total
-                    </span>
-                    <div className="flex items-center justify-between">
-                      <span className="text-zinc-400">Faturamento:</span>
-                      <span className="font-mono font-bold text-emerald-400">
-                        {formatCurrency(t.totalRevenue || 0)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-zinc-400">
-                      <span>OS Geradas:</span>
-                      <span className="font-mono font-semibold text-zinc-200">
-                        {t.ordersCount || 0} OS
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-zinc-500 text-[11px]">
-                      <span>Último Acesso:</span>
-                      <span>{t.lastAccessAt ? formatDate(t.lastAccessAt) : "Recente"}</span>
-                    </div>
-                  </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleTenantStatus(t.id)}
+                      className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors border ${
+                        t.status === "SUSPENDED"
+                          ? "bg-emerald-950/40 text-emerald-400 border-emerald-500/40 hover:bg-emerald-900/50"
+                          : "bg-zinc-900 text-zinc-300 border-zinc-700 hover:bg-red-950/40 hover:text-red-400 hover:border-red-500/40"
+                      }`}
+                      title={t.status === "SUSPENDED" ? "Reativar oficina" : "Desativar oficina"}
+                    >
+                      <Power className="w-3.5 h-3.5" />
+                      <span>{t.status === "SUSPENDED" ? "Ativar" : "Desativar"}</span>
+                    </button>
 
-                  {/* Actions: Edit, Activate/Deactivate, Switch */}
-                  <div className="flex items-center gap-2 justify-end flex-wrap xl:flex-col xl:items-end">
-                    <div className="flex items-center gap-2">
+                    {t.id !== "tenant-1" && (
                       <button
                         type="button"
-                        onClick={() => handleOpenEdit(t)}
-                        className="px-3 py-2 rounded-xl font-bold text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 flex items-center gap-1.5 transition-colors border border-zinc-700"
-                        title="Editar dados da oficina (ESC fecha)"
+                        onClick={() => handleDeleteTenant(t)}
+                        className="px-3 py-1.5 rounded-xl font-bold text-xs bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-500/40 flex items-center gap-1.5 transition-colors"
+                        title="Excluir oficina"
                       >
-                        <Edit3 className="w-3.5 h-3.5 text-zinc-400" />
-                        <span>Editar</span>
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Excluir</span>
                       </button>
-
-                      <button
-                        type="button"
-                        onClick={() => toggleTenantStatus(t.id)}
-                        className={`px-3 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors border ${
-                          t.status === "SUSPENDED"
-                            ? "bg-emerald-950/40 text-emerald-400 border-emerald-500/40 hover:bg-emerald-900/50"
-                            : "bg-zinc-900 text-zinc-300 border-zinc-700 hover:bg-red-950/40 hover:text-red-400 hover:border-red-500/40"
-                        }`}
-                        title={t.status === "SUSPENDED" ? "Reativar oficina" : "Desativar oficina"}
-                      >
-                        <Power className="w-3.5 h-3.5" />
-                        <span>{t.status === "SUSPENDED" ? "Ativar" : "Desativar"}</span>
-                      </button>
-                    </div>
+                    )}
 
                     <button
                       onClick={() => {
                         setTenant(t);
                         alert(`Oficina "${t.name}" selecionada.`);
                       }}
-                      className={`px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95 ${
+                      className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95 ${
                         isCurrent
                           ? "bg-zinc-800 text-zinc-400 cursor-default"
                           : "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-orange-500/20"
@@ -522,6 +466,62 @@ export function SaasOwnerDashboard() {
                       <span>{isCurrent ? "Oficina Ativa" : "Acessar Oficina"}</span>
                       <ArrowUpRight className="w-3.5 h-3.5" />
                     </button>
+                  </div>
+                </div>
+
+                {/* Grid Responsivo de Detalhes da Empresa */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {/* Bloco 1: Dados de Contato e Endereço */}
+                  <div className="p-3.5 rounded-xl bg-zinc-900/70 border border-zinc-800/80 space-y-1.5 text-xs">
+                    <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider block">
+                      Localização & Contato
+                    </span>
+                    <p className="text-zinc-300">
+                      📍 {t.address || "Endereço comercial não cadastrado"}
+                    </p>
+                    <p className="text-zinc-400 font-mono">
+                      📞 {t.phone || "Telefone não informado"}
+                    </p>
+                  </div>
+
+                  {/* Bloco 2: Acesso do Responsável */}
+                  <div className="p-3.5 rounded-xl bg-zinc-900/70 border border-purple-500/30 space-y-1 text-xs">
+                    <span className="text-[10px] text-purple-300 uppercase font-bold tracking-wider flex items-center gap-1.5">
+                      <UserCheck className="w-3.5 h-3.5 text-purple-400" />
+                      Login do Administrador
+                    </span>
+                    <div className="text-white font-bold flex items-center justify-between">
+                      <span className="truncate">{owner?.name || t.lastAccessUser || "Proprietário"}</span>
+                      <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                        ADMIN
+                      </span>
+                    </div>
+                    <p className="text-zinc-300 font-mono text-[11px] truncate">
+                      ✉️ {owner?.email || t.email || "contato@rota66.com.br"}
+                    </p>
+                    <p className="text-zinc-400 text-[11px]">
+                      Usuário: <strong className="text-zinc-200 font-mono">{owner?.username || "marcos"}</strong>
+                    </p>
+                  </div>
+
+                  {/* Bloco 3: Plano e Movimentação */}
+                  <div className="p-3.5 rounded-xl bg-zinc-900/70 border border-zinc-800/80 space-y-1 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-zinc-500">Plano:</span>
+                      <span className="font-mono font-bold px-2 py-0.5 rounded text-[10px] bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                        {t.plan === "ANNUAL" ? "Plano Anual" : "Plano Mensal"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-zinc-400">
+                      <span>Faturamento:</span>
+                      <span className="font-mono font-bold text-emerald-400">
+                        {formatCurrency(t.totalRevenue || 0)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-zinc-500 text-[11px]">
+                      <span>Ordens de Serviço:</span>
+                      <span className="font-mono text-zinc-200 font-bold">{t.ordersCount || 0} OS</span>
+                    </div>
                   </div>
                 </div>
               </div>

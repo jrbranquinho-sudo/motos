@@ -31,6 +31,7 @@ interface MotoShopContextType {
   tenants: Tenant[];
   setTenant: (tenant: Tenant) => void;
   updateTenant: (id: string, data: Partial<Tenant>) => void;
+  deleteTenant: (id: string) => void;
   toggleTenantStatus: (id: string) => void;
   addTenant: (
     tenantData: Omit<Tenant, "id" | "createdAt">,
@@ -109,7 +110,7 @@ interface MotoShopContextType {
 }
 
 
-const STORAGE_KEY = "motoshop_saas_data_v3";
+const STORAGE_KEY = "motoshop_sistema_v5";
 
 const MotoShopContext = createContext<MotoShopContextType | null>(null);
 
@@ -233,6 +234,23 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
       prev.map((t) => (t.id === id ? { ...t, ...data } : t))
     );
     setTenantState((prev) => (prev.id === id ? { ...prev, ...data } : prev));
+  };
+
+  const deleteTenant = (id: string) => {
+    if (id === "tenant-1") {
+      alert("A oficina modelo Rota 66 Custom & Oficina não pode ser excluída.");
+      return;
+    }
+    setTenants((prev) => prev.filter((t) => t.id !== id));
+    setUsers((prev) => prev.filter((u) => u.tenantId !== id));
+    setVehicles((prev) => prev.filter((v) => v.tenantId !== id));
+    setCustomers((prev) => prev.filter((c) => c.tenantId !== id));
+    setParts((prev) => prev.filter((p) => p.tenantId !== id));
+    setServiceOrders((prev) => prev.filter((so) => so.tenantId !== id));
+    setMaintenanceRecords((prev) => prev.filter((m) => m.tenantId !== id));
+    if (tenant.id === id) {
+      setTenantState(SEED_TENANTS[0]);
+    }
   };
 
   const toggleTenantStatus = (id: string) => {
@@ -737,6 +755,7 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
         tenants,
         setTenant,
         updateTenant,
+        deleteTenant,
         toggleTenantStatus,
         addTenant,
         renewSubscription,

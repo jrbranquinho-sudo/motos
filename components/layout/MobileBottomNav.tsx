@@ -15,7 +15,7 @@ export function MobileBottomNav() {
 
   const navs = isSaasOwner
     ? [
-        { label: "SaaS Master", href: "/dashboard", icon: LayoutDashboard },
+        { label: "Plataforma", href: "/dashboard", icon: LayoutDashboard },
         { label: "Oficinas", href: "/dashboard#oficinas", icon: Building2 },
         { label: "Planos", href: "/settings/billing", icon: CreditCard },
       ]

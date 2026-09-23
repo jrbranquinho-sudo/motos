@@ -70,8 +70,8 @@ export default function LandingPage() {
             </div>
             <div>
               <span className="font-black text-xl text-white tracking-tight">MotoShop</span>
-              <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30 ml-2">
-                SaaS B2B
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30 ml-2">
+                Gestão Profissional
               </span>
             </div>
           </div>
@@ -81,7 +81,7 @@ export default function LandingPage() {
               Funcionalidades
             </a>
             <a href="#mechanic-flow" className="hover:text-white transition-colors">
-              Fluxo do Mecânico
+              Fluxo da Oficina
             </a>
             <a href="#pricing" className="hover:text-white transition-colors">
               Planos & Preços
@@ -96,10 +96,10 @@ export default function LandingPage() {
               Entrar
             </Link>
             <Link
-              href="/dashboard"
+              href="/login"
               className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm shadow-lg shadow-orange-500/25 active:scale-95 transition-all"
             >
-              <span>Acessar Painel Demo</span>
+              <span>Acessar o Sistema</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -254,91 +254,77 @@ export default function LandingPage() {
 
       {/* Pricing Section */}
       <section id="pricing" className="py-20 px-6 bg-zinc-950 border-t border-zinc-800">
-        <div className="max-w-6xl mx-auto space-y-12 text-center">
+        <div className="max-w-5xl mx-auto space-y-12 text-center">
           <div className="space-y-3">
             <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
               Planos Transparentes para Oficinas de Todos os Portes
             </h2>
             <p className="text-zinc-400 text-sm max-w-lg mx-auto">
-              Comece no plano gratuito ou acelere sua oficina com recursos profissionais ilimitados
+              Contratação direta sem surpresas, com acesso ilimitado para mecânicos e recepção
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-            {/* Free */}
-            <div className="p-6 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-col justify-between">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left max-w-4xl mx-auto">
+            {/* Plano Mensal */}
+            <div className="p-7 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-col justify-between shadow-xl">
               <div>
-                <h3 className="text-xl font-bold text-white">Free</h3>
-                <p className="text-xs text-zinc-400 mt-1">Para mecânicos autônomos</p>
-                <div className="my-4">
-                  <span className="text-4xl font-black text-white">R$ 0</span>
-                  <span className="text-xs text-zinc-500 ml-1">para sempre</span>
+                <div className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-zinc-800 text-zinc-300 border border-zinc-700 mb-3">
+                  Recorrente
                 </div>
-                <ul className="space-y-2 text-xs text-zinc-300 border-t border-zinc-800 pt-4">
-                  <li>• 1 Usuário mecânico</li>
-                  <li>• Até 30 OS por mês</li>
-                  <li>• Até 50 peças no estoque</li>
-                  <li>• Impressão de OS em Folha A4</li>
+                <h3 className="text-2xl font-black text-white">Plano Mensal</h3>
+                <p className="text-xs text-zinc-400 mt-1">Flexibilidade mês a mês para sua oficina</p>
+                <div className="my-5">
+                  <span className="text-4xl sm:text-5xl font-black text-white">R$ 280</span>
+                  <span className="text-xs text-zinc-500 ml-2 font-bold">/ mês</span>
+                </div>
+                <ul className="space-y-2.5 text-xs text-zinc-300 border-t border-zinc-800 pt-5">
+                  <li className="flex items-center gap-2">• Ordens de Serviço e Quadro de Bancada ilimitados</li>
+                  <li className="flex items-center gap-2">• Controle total de estoque e autopeças</li>
+                  <li className="flex items-center gap-2">• Cadastro de motos, clientes e prontuário</li>
+                  <li className="flex items-center gap-2">• Impressão térmica 80mm e folha A4</li>
+                  <li className="flex items-center gap-2">• Acesso simultâneo para toda a equipe</li>
+                  <li className="flex items-center gap-2">• Notificações automáticas via WhatsApp</li>
+                  <li className="flex items-center gap-2">• Suporte prioritário via WhatsApp e e-mail</li>
                 </ul>
               </div>
               <Link
-                href="/dashboard"
-                className="mt-6 w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs text-center block"
+                href="/login"
+                className="mt-8 w-full py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs sm:text-sm text-center block transition-colors"
               >
-                Começar Grátis
+                Contratar Plano Mensal
               </Link>
             </div>
 
-            {/* Pro (Highlighted) */}
-            <div className="p-6 rounded-2xl bg-gradient-to-b from-zinc-900 to-zinc-950 border-2 border-orange-500 flex flex-col justify-between shadow-2xl relative">
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-orange-500 text-white shadow">
-                Mais Escolhido
+            {/* Plano Anual (Highlight) */}
+            <div className="p-7 rounded-2xl bg-gradient-to-b from-zinc-900 to-zinc-950 border-2 border-orange-500 flex flex-col justify-between shadow-2xl relative">
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-orange-500 text-white shadow-lg shadow-orange-500/30">
+                Mais Escolhido • Economize R$ 1.360
               </span>
               <div>
-                <h3 className="text-xl font-bold text-white">Pro</h3>
-                <p className="text-xs text-zinc-400 mt-1">Para oficinas profissionais</p>
-                <div className="my-4">
-                  <span className="text-4xl font-black text-white">R$ 149</span>
-                  <span className="text-xs text-zinc-500 ml-1">/ mês</span>
+                <div className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30 mb-3">
+                  Melhor Custo-Benefício
                 </div>
-                <ul className="space-y-2 text-xs text-zinc-300 border-t border-zinc-800 pt-4">
-                  <li>• Até 10 usuários simultâneos</li>
-                  <li>• Ordens de Serviço ILIMITADAS</li>
-                  <li>• Peças e Estoque ILIMITADOS</li>
-                  <li>• Impressão Térmica 80mm e A4</li>
-                  <li>• Disparos de WhatsApp automáticos</li>
-                  <li>• Cronômetro de serviço na bancada</li>
+                <h3 className="text-2xl font-black text-white">Plano Anual</h3>
+                <p className="text-xs text-zinc-400 mt-1">Máxima economia e estabilidade operacional</p>
+                <div className="my-5">
+                  <span className="text-4xl sm:text-5xl font-black text-orange-400">R$ 2.000</span>
+                  <span className="text-xs text-zinc-400 ml-2 font-bold">/ ano (~R$ 166/mês)</span>
+                </div>
+                <ul className="space-y-2.5 text-xs text-zinc-300 border-t border-zinc-800 pt-5">
+                  <li className="flex items-center gap-2">• Todos os recursos do Plano Mensal inclusos</li>
+                  <li className="flex items-center gap-2 font-bold text-orange-400">• Economia de R$ 1.360 em relação ao ciclo mensal</li>
+                  <li className="flex items-center gap-2">• Congelamento de tabela por 12 meses</li>
+                  <li className="flex items-center gap-2">• Backup diário na nuvem com restauração rápida</li>
+                  <li className="flex items-center gap-2">• Treinamento online inicial para toda a equipe</li>
+                  <li className="flex items-center gap-2">• Gerente de atendimento dedicado</li>
+                  <li className="flex items-center gap-2">• SLA de suporte prioritário 99.9%</li>
                 </ul>
               </div>
               <Link
-                href="/dashboard"
-                className="mt-6 w-full py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs text-center block shadow-lg shadow-orange-500/25"
+                href="/login"
+                className="mt-8 w-full py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs sm:text-sm text-center block shadow-lg shadow-orange-500/25 transition-all"
               >
-                Experimentar 14 Dias Grátis
-              </Link>
-            </div>
-
-            {/* Starter */}
-            <div className="p-6 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-col justify-between">
-              <div>
-                <h3 className="text-xl font-bold text-white">Starter</h3>
-                <p className="text-xs text-zinc-400 mt-1">Para equipes pequenas</p>
-                <div className="my-4">
-                  <span className="text-4xl font-black text-white">R$ 79</span>
-                  <span className="text-xs text-zinc-500 ml-1">/ mês</span>
-                </div>
-                <ul className="space-y-2 text-xs text-zinc-300 border-t border-zinc-800 pt-4">
-                  <li>• Até 3 usuários</li>
-                  <li>• Ordens de Serviço ilimitadas</li>
-                  <li>• Até 200 peças no estoque</li>
-                  <li>• Alertas de estoque mínimo</li>
-                </ul>
-              </div>
-              <Link
-                href="/dashboard"
-                className="mt-6 w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs text-center block"
-              >
-                Assinar Starter
+                Contratar Plano Anual com Desconto
               </Link>
             </div>
           </div>
@@ -350,10 +336,10 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Wrench className="w-4 h-4 text-orange-500" />
-            <span className="font-bold text-zinc-300">MotoShop SaaS</span>
-            <span>— Gestão de Oficinas de Motos e Autopeças</span>
+            <span className="font-bold text-zinc-300">MotoShop</span>
+            <span>— Gestão Inteligente para Oficinas de Motos</span>
           </div>
-          <p>© {new Date().getFullYear()} MotoShop SaaS. Todos os direitos reservados.</p>
+          <p>© {new Date().getFullYear()} MotoShop. Todos os direitos reservados.</p>
         </div>
       </footer>
     </div>

@@ -221,7 +221,7 @@ export default function LoginPage() {
             <Wrench className="w-7 h-7" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            MotoShop SaaS
+            MotoShop
           </h1>
           <p className="text-xs sm:text-sm text-zinc-400">
             {tenant.name || "Rota 66 Custom & Oficina"} • Portal de Acesso Seguro

@@ -56,11 +56,11 @@ export function Header() {
         </Link>
       </div>
 
-      {/* Search Bar or SaaS Master Badge */}
+      {/* Search Bar or Gestão Central Badge */}
       {isSaasOwner ? (
         <div className="hidden sm:flex items-center gap-2 text-xs text-purple-300 bg-purple-950/40 border border-purple-500/30 px-3.5 py-2 rounded-xl">
           <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-          <span className="font-semibold">👑 Painel SaaS Master • Controle Central de Oficinas Contratantes</span>
+          <span className="font-semibold">👑 Gestão Central • Controle de Oficinas Contratantes</span>
         </div>
       ) : (
         <form onSubmit={handleSearch} className="relative flex-1 max-w-md hidden sm:block">
@@ -137,7 +137,7 @@ export function Header() {
         <div className="hidden md:flex items-center gap-1.5 text-xs text-zinc-400 bg-zinc-900 border border-zinc-800 px-2.5 py-1.5 rounded-lg">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-zinc-200 font-medium">
-            {isSaasOwner ? "SaaS Master" : tenant.name}
+            {isSaasOwner ? "Gestor Master" : tenant.name}
           </span>
         </div>
 
@@ -170,7 +170,7 @@ export function Header() {
             onClick={() => setMobileMenuOpen(false)}
             className="p-3 rounded-lg bg-zinc-900 text-zinc-200 font-medium flex items-center gap-3"
           >
-            <Wrench className="w-4 h-4 text-orange-400" /> Dashboard
+            <Wrench className="w-4 h-4 text-orange-400" /> Painel de Controle
           </Link>
           <Link
             href="/orders"
@@ -203,7 +203,7 @@ export function Header() {
             onClick={() => setMobileMenuOpen(false)}
             className="p-3 rounded-lg bg-zinc-900 text-zinc-200 font-medium flex items-center gap-3"
           >
-            Planos & Faturamento SaaS
+            Planos & Faturamento
           </Link>
         </div>
       )}

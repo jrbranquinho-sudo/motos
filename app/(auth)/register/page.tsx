@@ -57,25 +57,11 @@ export default function RegisterPage() {
               value={shopName}
               onChange={(e) => {
                 setShopName(e.target.value);
-                setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ""));
+                setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "-"));
               }}
               className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none"
               required
             />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-zinc-400 block mb-1">Subdomínio Desejado *</label>
-            <div className="flex items-center rounded-xl bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm text-zinc-100 font-mono">
-              <input
-                type="text"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
-                className="w-full bg-transparent focus:outline-none text-orange-400"
-                required
-              />
-              <span className="text-zinc-500 text-xs">.motoshop.com</span>
-            </div>
           </div>
 
           <div>
@@ -118,7 +104,7 @@ export default function RegisterPage() {
             type="submit"
             className="w-full py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm shadow-lg shadow-orange-500/25 active:scale-95 transition-all flex items-center justify-center gap-2 pt-3"
           >
-            <span>Iniciar Trial de 14 Dias</span>
+            <span>Iniciar Teste Grátis de 14 Dias</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>

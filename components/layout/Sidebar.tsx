@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Wrench,
   LayoutDashboard,
@@ -20,12 +20,14 @@ import {
   ShieldCheck,
   ArrowRightLeft,
   UserCheck,
+  LogOut,
 } from "lucide-react";
 import { useMotoShop } from "@/lib/store";
 import { Role } from "@/lib/types";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const {
     tenant,
     tenants,
@@ -35,6 +37,7 @@ export function Sidebar() {
     setCurrentUser,
     metrics,
     resetToDefaults,
+    logout,
   } = useMotoShop();
 
   const [showTenantMenu, setShowTenantMenu] = useState(false);
@@ -44,13 +47,13 @@ export function Sidebar() {
 
   const navItems = isSaasOwner
     ? [
-        { label: "Dashboard SaaS (Master)", href: "/dashboard", icon: LayoutDashboard },
+        { label: "Painel da Plataforma", href: "/dashboard", icon: LayoutDashboard },
         { label: "Oficinas Contratantes", href: "/dashboard#oficinas", icon: Building2 },
         { label: "Planos & Assinaturas", href: "/settings/billing", icon: CreditCard },
       ]
     : isMechanic
     ? [
-        { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { label: "Painel de Controle", href: "/dashboard", icon: LayoutDashboard },
         {
           label: "Minhas OS",
           href: "/orders",
@@ -61,7 +64,7 @@ export function Sidebar() {
         { label: "Alterar Senha", href: "/employees", icon: UserCheck },
       ]
     : [
-        { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { label: "Painel de Controle", href: "/dashboard", icon: LayoutDashboard },
         {
           label: "Ordens de Serviço",
           href: "/orders",
@@ -99,7 +102,7 @@ export function Sidebar() {
                 {tenant.plan}
               </span>
             </div>
-            <p className="text-xs text-zinc-500 font-medium">SaaS Gestão de Motos</p>
+            <p className="text-xs text-zinc-500 font-medium">Gestão de Oficinas</p>
           </div>
         </Link>
       </div>
@@ -114,7 +117,7 @@ export function Sidebar() {
             <Building2 className="w-4 h-4 text-orange-400 shrink-0" />
             <div className="truncate">
               <p className="text-zinc-200 font-semibold truncate leading-tight">{tenant.name}</p>
-              <p className="text-[10px] text-zinc-500 truncate">{tenant.slug}.motoshop.com</p>
+              <p className="text-[10px] text-zinc-500 truncate">Oficina Ativa</p>
             </div>
           </div>
           <ChevronDown className="w-3.5 h-3.5 text-zinc-400 shrink-0 ml-1" />
@@ -123,7 +126,7 @@ export function Sidebar() {
         {showTenantMenu && (
           <div className="absolute left-3 right-3 top-14 bg-zinc-900 border border-zinc-700 rounded-lg shadow-2xl p-1 z-50">
             <div className="text-[10px] uppercase font-bold text-zinc-500 px-2 py-1">
-              Trocar Oficina (Tenant)
+              Oficinas Cadastradas
             </div>
             {tenants.map((t) => (
               <button
@@ -197,85 +200,47 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* User Role & Demo Reset Footer */}
-      <div className="p-3 border-t border-zinc-800/80 bg-zinc-950/40 relative">
-        <button
-          onClick={() => setShowUserMenu(!showUserMenu)}
-          className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-zinc-900 text-left transition-colors"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 font-bold text-xs">
+      {/* User Profile & Logout Footer */}
+      <div className="p-3 border-t border-zinc-800/80 bg-zinc-950/40">
+        <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-900/70 border border-zinc-800">
+          <div className="flex items-center gap-2.5 truncate">
+            <div className="w-8 h-8 rounded-full bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 font-bold text-xs shrink-0">
               {currentUser.name.slice(0, 2).toUpperCase()}
             </div>
             <div className="truncate">
               <p className="text-xs font-semibold text-zinc-200 truncate">{currentUser.name}</p>
               <div className="flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3 text-orange-400" />
-                <span className="text-[10px] text-zinc-400 uppercase font-mono tracking-wide">
-                  {currentUser.role}
+                <ShieldCheck className="w-3 h-3 text-emerald-400 shrink-0" />
+                <span className="text-[10px] text-zinc-400 font-medium truncate">
+                  {currentUser.role === "SUPER_ADMIN"
+                    ? "Administrador Geral"
+                    : currentUser.role === "ADMIN"
+                    ? "Proprietário / Admin"
+                    : currentUser.role === "MECHANIC"
+                    ? "Mecânico"
+                    : currentUser.role === "RECEPTIONIST"
+                    ? "Recepção"
+                    : "Gerente"}
                 </span>
               </div>
             </div>
           </div>
-          <ChevronDown className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-        </button>
+        </div>
 
-        {showUserMenu && (
-          <div className="absolute left-3 right-3 bottom-16 bg-zinc-900 border border-zinc-700 rounded-lg shadow-2xl p-1 z-50">
-            <div className="text-[10px] uppercase font-bold text-zinc-500 px-2 py-1">
-              Simular Cargo (RBAC)
-            </div>
-            {users.map((u) => (
-              <button
-                key={u.id}
-                onClick={() => {
-                  setCurrentUser(u);
-                  const targetTenant = tenants.find((t) => t.id === u.tenantId);
-                  if (targetTenant && targetTenant.id !== tenant.id) {
-                    setTenant(targetTenant);
-                  }
-                  setShowUserMenu(false);
-                }}
-                className={`w-full text-left px-2.5 py-1.5 rounded text-xs flex items-center justify-between transition-colors ${
-                  u.id === currentUser.id
-                    ? "bg-orange-500/20 text-orange-400 font-semibold"
-                    : "text-zinc-300 hover:bg-zinc-800"
-                }`}
-              >
-                <div className="truncate pr-1">
-                  <p className="truncate font-medium">{u.name}</p>
-                </div>
-                <span
-                  className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold shrink-0 ${
-                    u.role === "SUPER_ADMIN"
-                      ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-                      : u.role === "ADMIN"
-                      ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
-                      : u.role === "MANAGER"
-                      ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                      : u.role === "RECEPTIONIST"
-                      ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                      : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                  }`}
-                >
-                  {u.role === "SUPER_ADMIN" ? "DONO SAAS" : u.role}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* 1-click Reset Demo Data */}
+        {/* Botão Sair / Desconectar */}
         <button
+          type="button"
           onClick={() => {
-            if (confirm("Deseja restaurar os dados de demonstração iniciais da oficina?")) {
-              resetToDefaults();
+            if (confirm("Deseja realmente sair da sua conta?")) {
+              logout();
+              router.push("/login");
             }
           }}
-          className="mt-2 w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors"
+          className="mt-2 w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-red-950/25 hover:bg-red-900/40 text-red-400 border border-red-500/25 text-xs font-bold transition-all active:scale-95"
+          title="Encerrar sessão"
         >
-          <RotateCcw className="w-3 h-3" />
-          <span>Restaurar Seed Inicial</span>
+          <LogOut className="w-3.5 h-3.5" />
+          <span>Sair / Desconectar</span>
         </button>
       </div>
     </aside>

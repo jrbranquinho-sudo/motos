@@ -98,15 +98,15 @@ function VehiclesListContent() {
         <div className="w-16 h-16 bg-purple-500/10 border border-purple-500/30 rounded-2xl flex items-center justify-center mx-auto mb-4 text-purple-400">
           <Bike className="w-8 h-8" />
         </div>
-        <h2 className="text-2xl font-black text-white mb-2">Acesso Restrito ao Dono do SaaS</h2>
+        <h2 className="text-2xl font-black text-white mb-2">Acesso Restrito ao Gestor da Plataforma</h2>
         <p className="text-zinc-400 text-sm mb-6 leading-relaxed">
-          Como administrador da plataforma SaaS, você gerencia as oficinas clientes contratantes. O cadastro e consulta de veículos e placas é de uso exclusivo da operação de cada oficina mecânica.
+          Como administrador da plataforma, você gerencia as oficinas clientes contratantes. O cadastro e consulta de veículos e placas é de uso exclusivo da operação de cada oficina mecânica.
         </p>
         <Link
           href="/dashboard"
           className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm transition-colors shadow-lg shadow-orange-500/20"
         >
-          Voltar para o Painel SaaS Master
+          Voltar para o Painel Geral
         </Link>
       </div>
     );

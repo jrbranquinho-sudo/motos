@@ -24,7 +24,7 @@ import { formatPhone } from "@/lib/utils";
 
 const ROLE_LABELS: Record<Role, { label: string; bg: string; text: string; border: string }> = {
   SUPER_ADMIN: {
-    label: "Dono do SaaS (Master)",
+    label: "Gestor da Plataforma (Master)",
     bg: "bg-purple-500/20",
     text: "text-purple-300",
     border: "border-purple-500/40",
@@ -117,15 +117,15 @@ export default function EmployeesPage() {
         <div className="w-16 h-16 bg-purple-500/10 border border-purple-500/30 rounded-2xl flex items-center justify-center mx-auto mb-4 text-purple-400">
           <Users className="w-8 h-8" />
         </div>
-        <h2 className="text-2xl font-black text-white mb-2">Acesso Restrito ao Dono do SaaS</h2>
+        <h2 className="text-2xl font-black text-white mb-2">Acesso Restrito ao Gestor da Plataforma</h2>
         <p className="text-zinc-400 text-sm mb-6 leading-relaxed">
-          Como administrador da plataforma SaaS, você gerencia as empresas clientes contratantes e visualiza apenas o login do proprietário de cada oficina. Os funcionários internos de cada empresa são restritos.
+          Como administrador da plataforma, você gerencia as empresas clientes contratantes e visualiza apenas o login do proprietário de cada oficina. Os funcionários internos de cada empresa são restritos.
         </p>
         <Link
           href="/dashboard"
           className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm transition-colors shadow-lg shadow-orange-500/20"
         >
-          Ir para o Painel SaaS Master
+          Ir para o Painel Geral
         </Link>
       </div>
     );
