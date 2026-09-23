@@ -159,13 +159,30 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
             (u: User) => u.username === "jrbranquinho" || u.email === "jrbranquinho@motoshop.com.br"
           );
           const rawUsers = hasMaster ? parsed.users : [SEED_USERS[0], ...parsed.users];
+          const PABLO_RESET_KEY = "motoshop_pablo_reset_v1_done";
+          const needsPabloReset = typeof window !== "undefined" && !localStorage.getItem(PABLO_RESET_KEY);
+          if (needsPabloReset && typeof window !== "undefined") {
+            try {
+              localStorage.setItem(PABLO_RESET_KEY, "true");
+            } catch (e) {
+              // ignore
+            }
+          }
+
           const loadedUsers = rawUsers.map((u: User) => {
-            if (u.id === "user-1" || u.username === "marcos" || u.email === "marcos@rota66.com.br") {
+            if (u.id === "user-1" || u.username === "marcos" || u.email === "marcos@rota66.com.br" || u.username === "pablo" || u.email === "pablo@rota66.com.br") {
               return {
                 ...u,
                 name: "Pablo Silva",
                 username: "pablo",
                 email: "pablo@rota66.com.br",
+                ...(needsPabloReset
+                  ? {
+                      password: "mot-os123",
+                      mustChangePassword: true,
+                      twoFactorEnabled: true,
+                    }
+                  : {}),
               };
             }
             if (u.role === "SUPER_ADMIN") {
@@ -174,21 +191,11 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
             return u;
           });
           setUsers(loadedUsers);
-        }
-        const activeUserId = sessionUserId || parsed.currentUserId;
-        if (activeUserId) {
-          const foundUser = (parsed.users || SEED_USERS).find(
-            (u: User) => u.id === activeUserId
-          );
-          if (foundUser) {
-            if (foundUser.id === "user-1" || foundUser.username === "marcos") {
-              setCurrentUserState({
-                ...foundUser,
-                name: "Pablo Silva",
-                username: "pablo",
-                email: "pablo@rota66.com.br",
-              });
-            } else {
+
+          const activeUserId = sessionUserId || parsed.currentUserId;
+          if (activeUserId) {
+            const foundUser = loadedUsers.find((u: User) => u.id === activeUserId);
+            if (foundUser) {
               setCurrentUserState(foundUser);
             }
           }
