@@ -1,0 +1,197 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id                       String         @id @default(cuid())
+  name                     String
+  slug                     String         @unique
+  plan                     String         @default("FREE")
+  phone                    String?
+  cnpj                     String?
+  address                  String?
+  status                   String         @default("ACTIVE")
+  totalRevenue             Float          @default(0)
+  ordersCount              Int            @default(0)
+  vehiclesCount            Int            @default(0)
+  activeUsersCount         Int            @default(1)
+  lastAccessAt             DateTime?
+  lastAccessUser           String?
+  lastAccessUserRole       String?
+  subscriptionCycle        String?        @default("MONTHLY")
+  subscriptionPrice        Float?         @default(79)
+  subscriptionDurationDays Int?           @default(30)
+  subscriptionStartedAt    DateTime?
+  subscriptionExpiresAt    DateTime?
+  subscriptionStatus       String?        @default("ACTIVE")
+  createdAt                DateTime       @default(now())
+  users                    User[]
+  vehicles                 Vehicle[]
+  parts                    Part[]
+  serviceOrders            ServiceOrder[]
+  suppliers                Supplier[]
+}
+
+model User {
+  id                 String         @id @default(cuid())
+  name               String
+  email              String
+  username           String?
+  password           String?
+  phone              String?
+  avatar             String?
+  role               String         @default("MECHANIC")
+  mustChangePassword Boolean        @default(false)
+  twoFactorEnabled   Boolean        @default(false)
+  tenantId           String
+  tenant             Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  serviceOrders      ServiceOrder[]
+  createdAt          DateTime       @default(now())
+
+  @@unique([email, tenantId])
+}
+
+model Customer {
+  id        String    @id @default(cuid())
+  name      String
+  phone     String
+  email     String?
+  document  String?   // CPF ou CNPJ
+  tenantId  String
+  vehicles  Vehicle[]
+  createdAt DateTime  @default(now())
+}
+
+model Vehicle {
+  id                 String              @id @default(cuid())
+  plate              String              // Placa — chave de busca principal
+  brand              String              // Marca (Honda, Yamaha, etc.)
+  model              String              // Modelo (CG 160, Fazer 250, etc.)
+  year               Int
+  color              String?
+  chassis            String?
+  currentKm          Int                 @default(0) // KM atual registrado
+  customerId         String
+  customer           Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tenantId           String
+  tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  serviceOrders      ServiceOrder[]
+  maintenanceHistory MaintenanceRecord[]
+  createdAt          DateTime            @default(now())
+
+  @@unique([plate, tenantId])
+}
+
+model ServiceOrder {
+  id               String    @id @default(cuid())
+  osNumber         Int       // Número sequencial por tenant
+  status           String    @default("OPEN")
+  vehicleId        String
+  vehicle          Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  mechanicId       String
+  mechanic         User      @relation(fields: [mechanicId], references: [id])
+  tenantId         String
+  tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  kmAtService      Int       // KM no momento da OS
+  kmNextService    Int?      // KM previsto para próxima revisão
+  complaint        String    // Reclamação do cliente
+  diagnosis        String?   // Diagnóstico do mecânico
+  notes            String?   // Observações internas
+  checklistJson    String?   // Itens de checklist serializados em JSON
+  items            OSItem[]
+  totalParts       Float     @default(0)
+  totalLabor       Float     @default(0)
+  totalDiscount    Float     @default(0)
+  totalAmount      Float     @default(0)
+  estimatedMinutes Int?      // Minutos estimados
+  spentMinutes     Int?      @default(0)
+  isTimerRunning   Boolean   @default(false)
+  timerStartedAt   DateTime?
+  completedAt      DateTime?
+  deliveredAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([osNumber, tenantId])
+}
+
+model OSItem {
+  id             String       @id @default(cuid())
+  serviceOrderId String
+  serviceOrder   ServiceOrder @relation(fields: [serviceOrderId], references: [id], onDelete: Cascade)
+  type           String       // PART ou LABOR
+  partId         String?
+  part           Part?        @relation(fields: [partId], references: [id])
+  description    String
+  quantity       Float        @default(1)
+  unitPrice      Float
+  discount       Float        @default(0)
+  total          Float
+}
+
+model Part {
+  id             String          @id @default(cuid())
+  code           String          // Código interno
+  name           String
+  description    String?
+  brand          String?
+  category       String          // Filtro, freio, motor, etc.
+  costPrice      Float
+  salePrice      Float
+  stockQty       Int             @default(0)
+  minStock       Int             @default(1) // Estoque mínimo para alerta
+  location       String?         // Localização física na prateleira
+  tenantId       String
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplierId     String?
+  supplier       Supplier?       @relation(fields: [supplierId], references: [id])
+  osItems        OSItem[]
+  stockMovements StockMovement[]
+  createdAt      DateTime        @default(now())
+
+  @@unique([code, tenantId])
+}
+
+model StockMovement {
+  id        String   @id @default(cuid())
+  partId    String
+  part      Part     @relation(fields: [partId], references: [id], onDelete: Cascade)
+  partName  String?
+  type      String   // IN, OUT, ADJUSTMENT
+  qty       Int
+  reason    String?
+  osId      String?
+  tenantId  String
+  createdAt DateTime @default(now())
+}
+
+model MaintenanceRecord {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  osId        String?  // Referência à OS original
+  km          Int      // KM na manutenção
+  description String
+  cost        Float    @default(0)
+  date        DateTime @default(now())
+  tenantId    String
+}
+
+model Supplier {
+  id       String  @id @default(cuid())
+  name     String
+  contact  String?
+  phone    String?
+  email    String?
+  tenantId String
+  tenant   Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parts    Part[]
+}
