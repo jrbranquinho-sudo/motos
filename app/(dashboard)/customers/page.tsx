@@ -20,6 +20,7 @@ import {
 import { useMotoShop } from "@/lib/store";
 import { formatPhone, formatPlate, formatCurrency, STATUS_MAP } from "@/lib/utils";
 import { Customer } from "@/lib/types";
+import { CpfCnpjInput } from "@/components/common/CpfCnpjInput";
 
 export default function CustomersPage() {
   const { tenant, customers, vehicles, serviceOrders, addCustomer, currentUser, isMechanic } = useMotoShop();
@@ -431,13 +432,15 @@ export default function CustomersPage() {
               </div>
 
               <div>
-                <label className="text-xs text-zinc-400 block mb-1">CPF ou CNPJ (Opcional)</label>
-                <input
-                  type="text"
-                  placeholder="000.000.000-00"
+                <CpfCnpjInput
                   value={newDoc}
-                  onChange={(e) => setNewDoc(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-lg p-2 text-sm text-zinc-100 font-mono focus:border-orange-500 outline-none"
+                  onChange={(formatted) => setNewDoc(formatted)}
+                  onCnpjFound={(data) => {
+                    if (data.razaoSocial && !newName) setNewName(data.razaoSocial);
+                    if (data.phone && !newPhone) setNewPhone(data.phone);
+                  }}
+                  label="CPF ou CNPJ (Opcional)"
+                  placeholder="000.000.000-00 ou CNPJ"
                 />
               </div>
 

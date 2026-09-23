@@ -135,11 +135,18 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("motoshop_sistema_v5");
+      const sessionActive =
+        typeof window !== "undefined" &&
+        sessionStorage.getItem("motoshop_session_active") === "true";
+      const sessionUserId =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("motoshop_session_user_id")
+          : null;
+
+      setIsAuthenticated(sessionActive);
+
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (typeof parsed.isAuthenticated === "boolean") {
-          setIsAuthenticated(parsed.isAuthenticated);
-        }
         if (parsed.tenants) setTenants(parsed.tenants);
         if (parsed.currentTenantId) {
           const foundTenant = (parsed.tenants || SEED_TENANTS).find(
@@ -162,15 +169,16 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
               };
             }
             if (u.role === "SUPER_ADMIN") {
-              return { ...u, tenantId: "platform" };
+              return { ...u, tenantId: "tenant-1" };
             }
             return u;
           });
           setUsers(loadedUsers);
         }
-        if (parsed.currentUserId) {
+        const activeUserId = sessionUserId || parsed.currentUserId;
+        if (activeUserId) {
           const foundUser = (parsed.users || SEED_USERS).find(
-            (u: User) => u.id === parsed.currentUserId
+            (u: User) => u.id === activeUserId
           );
           if (foundUser) {
             if (foundUser.id === "user-1" || foundUser.username === "marcos") {
@@ -242,10 +250,27 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
       if (foundTenant) setTenantState(foundTenant);
     }
     setIsAuthenticated(true);
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.setItem("motoshop_session_active", "true");
+        sessionStorage.setItem("motoshop_session_user_id", user.id);
+      } catch (e) {
+        // ignore
+      }
+    }
   };
 
   const logout = () => {
     setIsAuthenticated(false);
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.removeItem("motoshop_session_active");
+        sessionStorage.removeItem("motoshop_session_user_id");
+        sessionStorage.removeItem("motoshop_last_route");
+      } catch (e) {
+        // ignore
+      }
+    }
   };
 
   const setTenant = (t: Tenant) => {

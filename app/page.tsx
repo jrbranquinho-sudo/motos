@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Wrench,
   Bike,
@@ -24,7 +25,25 @@ import { useMotoShop } from "@/lib/store";
 import { formatCurrency } from "@/lib/utils";
 
 export default function LandingPage() {
-  const { tenant } = useMotoShop();
+  const { tenant, isAuthenticated, isLoaded } = useMotoShop();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoaded && isAuthenticated) {
+      const savedRoute =
+        (typeof window !== "undefined" && sessionStorage.getItem("motoshop_last_route")) ||
+        "/dashboard";
+      router.replace(savedRoute);
+    }
+  }, [isLoaded, isAuthenticated, router]);
+
+  if (!isLoaded || isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const features = [
     {

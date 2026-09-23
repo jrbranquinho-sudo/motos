@@ -34,6 +34,7 @@ import { useMotoShop } from "@/lib/store";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Plan, Tenant } from "@/lib/types";
 import { getSubscriptionInfo, OFFICIAL_PLANS } from "@/lib/subscription";
+import { CpfCnpjInput } from "@/components/common/CpfCnpjInput";
 
 const PLAN_PRICES: Record<string, number> = {
   MONTHLY: 280,
@@ -673,16 +674,17 @@ export function SaasOwnerDashboard() {
                     />
                   </div>
 
-                  <div>
-                    <label className="text-xs text-zinc-300 font-semibold block mb-1">
-                      CNPJ da Empresa
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="00.000.000/0001-00"
+                  <div className="sm:col-span-2">
+                    <CpfCnpjInput
                       value={cnpj}
-                      onChange={(e) => setCnpj(e.target.value)}
-                      className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 font-mono focus:border-orange-500 focus:outline-none"
+                      onChange={(formatted) => setCnpj(formatted)}
+                      onCnpjFound={(data) => {
+                        if (data.razaoSocial) setShopName(data.razaoSocial);
+                        if (data.address) setAddress(data.address);
+                        if (data.phone && !shopPhone) setShopPhone(data.phone);
+                      }}
+                      label="CNPJ da Empresa"
+                      placeholder="00.000.000/0001-00 ou CPF"
                     />
                   </div>
 
@@ -868,16 +870,17 @@ export function SaasOwnerDashboard() {
                   />
                 </div>
 
-                <div>
-                  <label className="text-xs text-zinc-300 font-semibold block mb-1">
-                    CNPJ da Empresa
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="00.000.000/0001-00"
+                <div className="sm:col-span-2">
+                  <CpfCnpjInput
                     value={editCnpj}
-                    onChange={(e) => setEditCnpj(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 font-mono focus:border-blue-500 focus:outline-none"
+                    onChange={(formatted) => setEditCnpj(formatted)}
+                    onCnpjFound={(data) => {
+                      if (data.razaoSocial) setEditName(data.razaoSocial);
+                      if (data.address) setEditAddress(data.address);
+                      if (data.phone && !editPhone) setEditPhone(data.phone);
+                    }}
+                    label="CNPJ da Empresa"
+                    placeholder="00.000.000/0001-00 ou CPF"
                   />
                 </div>
 

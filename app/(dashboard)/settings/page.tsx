@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Settings, Building2, Save, ShieldCheck, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useMotoShop } from "@/lib/store";
+import { CpfCnpjInput } from "@/components/common/CpfCnpjInput";
 
 export default function SettingsPage() {
   const { tenant, setTenant, currentUser, isMechanic } = useMotoShop();
@@ -101,14 +102,17 @@ export default function SettingsPage() {
             />
           </div>
 
-          <div>
-            <label className="text-xs font-bold text-zinc-400 block mb-1">CNPJ da Empresa</label>
-            <input
-              type="text"
+          <div className="sm:col-span-2">
+            <CpfCnpjInput
               value={cnpj}
-              onChange={(e) => setCnpj(e.target.value)}
-              placeholder="00.000.000/0001-00"
-              className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-3 text-sm text-zinc-100 font-mono focus:border-orange-500 focus:outline-none"
+              onChange={(formatted) => setCnpj(formatted)}
+              onCnpjFound={(data) => {
+                if (data.razaoSocial) setName(data.razaoSocial);
+                if (data.address) setAddress(data.address);
+                if (data.phone && !phone) setPhone(data.phone);
+              }}
+              label="CNPJ da Empresa"
+              placeholder="00.000.000/0001-00 ou CPF"
             />
           </div>
         </div>

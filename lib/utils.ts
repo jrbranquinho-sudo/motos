@@ -167,3 +167,129 @@ export function formatDecimal(value: number): string {
     maximumFractionDigits: 2,
   }).format(value || 0);
 }
+
+/**
+ * Formata dinamicamente um valor como CPF (11 dígitos) ou CNPJ (14 dígitos).
+ */
+export function formatCpfCnpj(value: string): string {
+  if (!value) return "";
+  const digits = value.replace(/\D/g, "").slice(0, 14);
+  if (digits.length <= 11) {
+    return digits
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  }
+  return digits
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+}
+
+/**
+ * Validação algorítmica de CPF (módulo 11 com 2 dígitos verificadores).
+ */
+export function validateCpf(cpf: string): boolean {
+  const clean = cpf.replace(/\D/g, "");
+  if (clean.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(clean)) return false;
+
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    sum += parseInt(clean.charAt(i), 10) * (10 - i);
+  }
+  let rev = 11 - (sum % 11);
+  if (rev === 10 || rev === 11) rev = 0;
+  if (rev !== parseInt(clean.charAt(9), 10)) return false;
+
+  sum = 0;
+  for (let i = 0; i < 10; i++) {
+    sum += parseInt(clean.charAt(i), 10) * (11 - i);
+  }
+  rev = 11 - (sum % 11);
+  if (rev === 10 || rev === 11) rev = 0;
+  if (rev !== parseInt(clean.charAt(10), 10)) return false;
+
+  return true;
+}
+
+/**
+ * Validação algorítmica de CNPJ (pesos e módulo 11 com 2 dígitos verificadores).
+ */
+export function validateCnpj(cnpj: string): boolean {
+  const clean = cnpj.replace(/\D/g, "");
+  if (clean.length !== 14) return false;
+  if (/^(\d)\1{13}$/.test(clean)) return false;
+
+  let size = clean.length - 2;
+  let numbers = clean.substring(0, size);
+  const digits = clean.substring(size);
+  let sum = 0;
+  let pos = size - 7;
+
+  for (let i = size; i >= 1; i--) {
+    sum += parseInt(numbers.charAt(size - i), 10) * pos--;
+    if (pos < 2) pos = 9;
+  }
+  let result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
+  if (result !== parseInt(digits.charAt(0), 10)) return false;
+
+  size = size + 1;
+  numbers = clean.substring(0, size);
+  sum = 0;
+  pos = size - 7;
+  for (let i = size; i >= 1; i--) {
+    sum += parseInt(numbers.charAt(size - i), 10) * pos--;
+    if (pos < 2) pos = 9;
+  }
+  result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
+  if (result !== parseInt(digits.charAt(1), 10)) return false;
+
+  return true;
+}
+
+export interface CpfCnpjInfo {
+  type: "CPF" | "CNPJ" | "INDEFINIDO";
+  raw: string;
+  formatted: string;
+  isComplete: boolean;
+  isValid: boolean;
+}
+
+/**
+ * Analisa e valida uma string de documento (CPF ou CNPJ).
+ */
+export function getCpfCnpjInfo(value: string): CpfCnpjInfo {
+  const clean = (value || "").replace(/\D/g, "").slice(0, 14);
+  const formatted = formatCpfCnpj(clean);
+
+  if (clean.length === 11) {
+    return {
+      type: "CPF",
+      raw: clean,
+      formatted,
+      isComplete: true,
+      isValid: validateCpf(clean),
+    };
+  }
+
+  if (clean.length === 14) {
+    return {
+      type: "CNPJ",
+      raw: clean,
+      formatted,
+      isComplete: true,
+      isValid: validateCnpj(clean),
+    };
+  }
+
+  return {
+    type: clean.length > 11 ? "CNPJ" : clean.length > 0 ? "CPF" : "INDEFINIDO",
+    raw: clean,
+    formatted,
+    isComplete: false,
+    isValid: false,
+  };
+}
+
