@@ -224,7 +224,7 @@ export default function LoginPage() {
             MotoShop
           </h1>
           <p className="text-xs sm:text-sm text-zinc-400">
-            {tenant.name || "Rota 66 Custom & Oficina"} • Portal de Acesso Seguro
+            Portal de Acesso Seguro
           </p>
         </div>
 
@@ -251,10 +251,10 @@ export default function LoginPage() {
                   Usuário ou E-mail
                 </label>
                 <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="ex: marcos@rota66.com.br ou jrbranquinho"
-                    value={identifier}
+                    <input
+                      type="text"
+                      placeholder="usuário ou usuario@email.com.br"
+                      value={identifier}
                     onChange={(e) => {
                       setIdentifier(e.target.value);
                       setErrorMsg("");
@@ -484,11 +484,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Footer */}
-        <div className="text-center text-xs text-zinc-500">
-          Oficina Modelo para Demonstração:{" "}
-          <strong className="text-zinc-300">Rota 66 Custom & Oficina</strong>
-        </div>
+
       </div>
 
       {/* Subscription Expired Blocking Modal (With ESC close) */}

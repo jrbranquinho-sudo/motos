@@ -55,6 +55,7 @@ export function SaasOwnerDashboard() {
     updateTenant,
     deleteTenant,
     toggleTenantStatus,
+    updateUser,
   } = useMotoShop();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPlanFilter, setSelectedPlanFilter] = useState<string>("ALL");
@@ -97,6 +98,22 @@ export function SaasOwnerDashboard() {
   const [editAddress, setEditAddress] = useState("");
   const [editPlan, setEditPlan] = useState<Plan>("MONTHLY");
 
+  // Workshop Owner credentials edit
+  const [editOwnerId, setEditOwnerId] = useState("");
+  const [editOwnerUsername, setEditOwnerUsername] = useState("");
+  const [editOwnerPassword, setEditOwnerPassword] = useState("");
+  const [editOwnerEmail, setEditOwnerEmail] = useState("");
+  const [editOwnerName, setEditOwnerName] = useState("");
+
+  // Master Owner Profile edit
+  const [isMasterProfileOpen, setIsMasterProfileOpen] = useState(false);
+  const [masterName, setMasterName] = useState(currentUser.name || "JR Branquinho");
+  const [masterEmail, setMasterEmail] = useState(currentUser.email || "jrbranquinho@motos.app");
+  const [masterUsername, setMasterUsername] = useState(currentUser.username || "jrbranquinho");
+  const [masterPhone, setMasterPhone] = useState(currentUser.phone || "");
+  const [masterPassword, setMasterPassword] = useState("");
+  const [masterConfirmPassword, setMasterConfirmPassword] = useState("");
+
   const [feedbackMsg, setFeedbackMsg] = useState("");
 
   // Global ESC key listener to close modals
@@ -105,6 +122,7 @@ export function SaasOwnerDashboard() {
       if (e.key === "Escape") {
         setIsAddModalOpen(false);
         setIsEditModalOpen(false);
+        setIsMasterProfileOpen(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -120,6 +138,14 @@ export function SaasOwnerDashboard() {
     setEditEmail(t.email || "");
     setEditAddress(t.address || "");
     setEditPlan(t.plan);
+
+    const owner = users.find((u) => u.tenantId === t.id && u.role === "ADMIN");
+    setEditOwnerId(owner?.id || "");
+    setEditOwnerUsername(owner?.username || "");
+    setEditOwnerPassword("");
+    setEditOwnerEmail(owner?.email || "");
+    setEditOwnerName(owner?.name || "");
+
     setIsEditModalOpen(true);
   };
 
@@ -135,8 +161,45 @@ export function SaasOwnerDashboard() {
       address: editAddress.trim() || undefined,
       plan: editPlan,
     });
-    setFeedbackMsg(`Oficina "${editName}" atualizada com sucesso!`);
+
+    if (editOwnerId) {
+      updateUser(editOwnerId, {
+        username: editOwnerUsername.trim() || undefined,
+        email: editOwnerEmail.trim() || undefined,
+        name: editOwnerName.trim() || undefined,
+        ...(editOwnerPassword.trim() ? { password: editOwnerPassword.trim(), mustChangePassword: false } : {}),
+      });
+    }
+
+    setFeedbackMsg(`Oficina "${editName}" e credenciais atualizadas com sucesso!`);
     setIsEditModalOpen(false);
+  };
+
+  const handleOpenMasterProfile = () => {
+    setMasterName(currentUser.name || "JR Branquinho");
+    setMasterEmail(currentUser.email || "jrbranquinho@motos.app");
+    setMasterUsername(currentUser.username || "jrbranquinho");
+    setMasterPhone(currentUser.phone || "");
+    setMasterPassword("");
+    setMasterConfirmPassword("");
+    setIsMasterProfileOpen(true);
+  };
+
+  const handleSaveMasterProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (masterPassword && masterPassword !== masterConfirmPassword) {
+      alert("A confirmação de senha não confere.");
+      return;
+    }
+    updateUser(currentUser.id, {
+      name: masterName.trim(),
+      email: masterEmail.trim(),
+      username: masterUsername.trim().toLowerCase(),
+      phone: masterPhone.trim() || undefined,
+      ...(masterPassword.trim() ? { password: masterPassword.trim() } : {}),
+    });
+    setFeedbackMsg("Dados do proprietário da plataforma (JR Branquinho) atualizados com sucesso!");
+    setIsMasterProfileOpen(false);
   };
 
   // Calculate SaaS Global Metrics
@@ -224,7 +287,17 @@ export function SaasOwnerDashboard() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            type="button"
+            onClick={handleOpenMasterProfile}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-950/50 hover:bg-purple-900/60 border border-purple-500/40 text-purple-200 font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95"
+            title="Alterar dados e senha do proprietário Master (JR Branquinho)"
+          >
+            <UserCheck className="w-4 h-4 text-purple-400" />
+            <span>Editar Meus Dados (JR Branquinho)</span>
+          </button>
+
           <button
             onClick={() => setIsAddModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm shadow-md shadow-orange-500/25 active:scale-95 transition-all"
@@ -499,8 +572,17 @@ export function SaasOwnerDashboard() {
                     <p className="text-zinc-300 font-mono text-[11px] truncate">
                       ✉️ {owner?.email || t.email || "contato@rota66.com.br"}
                     </p>
-                    <p className="text-zinc-400 text-[11px]">
-                      Usuário: <strong className="text-zinc-200 font-mono">{owner?.username || "marcos"}</strong>
+                    <p className="text-zinc-400 text-[11px] flex items-center justify-between">
+                      <span>Usuário: <strong className="text-zinc-200 font-mono">{owner?.username || "marcos"}</strong></span>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEdit(t)}
+                        className="text-[10px] text-purple-400 hover:text-purple-300 font-bold hover:underline flex items-center gap-1"
+                        title="Editar credenciais do responsável"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                        <span>Editar Usuário/Senha</span>
+                      </button>
                     </p>
                   </div>
 
@@ -857,6 +939,77 @@ export function SaasOwnerDashboard() {
                 </div>
               </div>
 
+              {/* Seção de Credenciais do Responsável (Usuário e Senha) */}
+              <div className="pt-4 border-t border-zinc-800 space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-purple-500/20 text-purple-400">
+                    <UserCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                      Credenciais do Proprietário da Oficina
+                    </h4>
+                    <p className="text-[11px] text-zinc-400">
+                      Altere o usuário e a senha de acesso do responsável pela oficina
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                      Nome do Responsável
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Nome do dono"
+                      value={editOwnerName}
+                      onChange={(e) => setEditOwnerName(e.target.value)}
+                      className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-purple-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                      E-mail de Login
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="dono@oficina.com.br"
+                      value={editOwnerEmail}
+                      onChange={(e) => setEditOwnerEmail(e.target.value)}
+                      className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-purple-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                      Usuário de Acesso (Username) *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="ex: marcos"
+                      value={editOwnerUsername}
+                      onChange={(e) => setEditOwnerUsername(e.target.value)}
+                      className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-purple-300 font-mono focus:border-purple-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                      Nova Senha de Acesso (opcional)
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="Deixe em branco para manter a atual"
+                      value={editOwnerPassword}
+                      onChange={(e) => setEditOwnerPassword(e.target.value)}
+                      className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-purple-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* Actions */}
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-800">
                 <button
@@ -871,6 +1024,134 @@ export function SaasOwnerDashboard() {
                   className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 active:scale-95 transition-all"
                 >
                   Salvar Alterações
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Editar Dados do Proprietário da Plataforma (Master - JR Branquinho) */}
+      {isMasterProfileOpen && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-zinc-900 border border-purple-500/40 rounded-3xl p-6 sm:p-8 max-w-xl w-full shadow-2xl space-y-6 my-auto max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Dados do Gestor da Plataforma (Master)</h3>
+                  <p className="text-xs text-zinc-400">
+                    Altere seus dados pessoais, usuário e senha de acesso ao sistema
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMasterProfileOpen(false)}
+                className="text-zinc-500 hover:text-white p-1 rounded-lg hover:bg-zinc-800"
+                title="Fechar (ESC)"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveMasterProfile} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                    Nome Completo *
+                  </label>
+                  <input
+                    type="text"
+                    value={masterName}
+                    onChange={(e) => setMasterName(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-purple-500 focus:outline-none"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                    Usuário de Acesso (Username) *
+                  </label>
+                  <input
+                    type="text"
+                    value={masterUsername}
+                    onChange={(e) => setMasterUsername(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-purple-300 font-mono focus:border-purple-500 focus:outline-none"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                    E-mail de Login *
+                  </label>
+                  <input
+                    type="email"
+                    value={masterEmail}
+                    onChange={(e) => setMasterEmail(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-purple-500 focus:outline-none"
+                    required
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                    Telefone / WhatsApp
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="(11) 98765-4321"
+                    value={masterPhone}
+                    onChange={(e) => setMasterPhone(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 font-mono focus:border-purple-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                    Nova Senha de Acesso
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Deixe em branco para não alterar"
+                    value={masterPassword}
+                    onChange={(e) => setMasterPassword(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-purple-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                    Confirmar Nova Senha
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Confirme a nova senha"
+                    value={masterConfirmPassword}
+                    onChange={(e) => setMasterConfirmPassword(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-purple-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setIsMasterProfileOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-semibold hover:bg-zinc-700"
+                >
+                  Cancelar (ESC)
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white text-xs font-bold shadow-md shadow-purple-500/20 active:scale-95 transition-all"
+                >
+                  Salvar Meus Dados
                 </button>
               </div>
             </form>
