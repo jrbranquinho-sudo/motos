@@ -117,14 +117,14 @@ export const SEED_TENANTS: Tenant[] = [
 export const SEED_USERS: User[] = [
   {
     id: "user-master",
-    name: "JR Branquinho",
+    name: "Jr Branquinho",
     email: "jrbranquinho@motos.app",
     username: "jrbranquinho",
     role: "SUPER_ADMIN",
     tenantId: "tenant-1",
     phone: "(11) 99999-8888",
     password: "mot-os123",
-    mustChangePassword: true,
+    mustChangePassword: false,
     twoFactorEnabled: true,
     avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
   },

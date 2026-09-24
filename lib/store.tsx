@@ -231,6 +231,8 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
                 ...u,
                 email: "jrbranquinho@motos.app",
                 tenantId: "tenant-1",
+                password: u.password || "mot-os123",
+                mustChangePassword: false,
               };
             }
             return u;
