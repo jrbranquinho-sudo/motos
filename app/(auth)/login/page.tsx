@@ -541,7 +541,7 @@ export default function LoginPage() {
                       {selectedPlan === "MONTHLY" && <Check className="w-2.5 h-2.5" />}
                     </div>
                   </div>
-                  <div className="text-lg font-black text-white">R$ 280</div>
+                  <div className="text-lg font-black text-white">R$ 180</div>
                   <span className="text-[10px] text-zinc-400">Ciclo de 30 dias</span>
                 </button>
 
@@ -555,7 +555,7 @@ export default function LoginPage() {
                   }`}
                 >
                   <span className="absolute -top-2 right-3 px-1.5 py-0.5 rounded text-[8px] font-black uppercase bg-orange-500 text-white">
-                    Economize R$ 1.360
+                    Economize R$ 960
                   </span>
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-bold text-white text-sm">Plano Anual</span>
@@ -569,8 +569,8 @@ export default function LoginPage() {
                       {selectedPlan === "ANNUAL" && <Check className="w-2.5 h-2.5" />}
                     </div>
                   </div>
-                  <div className="text-lg font-black text-white">R$ 2.000</div>
-                  <span className="text-[10px] text-zinc-400">Ciclo de 365 dias (~R$ 166/mês)</span>
+                  <div className="text-lg font-black text-white">R$ 1.200</div>
+                  <span className="text-[10px] text-zinc-400">Ciclo de 365 dias (~R$ 100/mês)</span>
                 </button>
               </div>
 
@@ -590,7 +590,7 @@ export default function LoginPage() {
                     <>
                       <CreditCard className="w-4 h-4" />
                       <span>
-                        Renovar {selectedPlan === "ANNUAL" ? "Plano Anual (R$ 2.000)" : "Plano Mensal (R$ 280)"} e Entrar
+                        Renovar {selectedPlan === "ANNUAL" ? "Plano Anual (R$ 1.200)" : "Plano Mensal (R$ 180)"} e Entrar
                       </span>
                       <ArrowRight className="w-4 h-4" />
                     </>

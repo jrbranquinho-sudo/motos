@@ -36,7 +36,7 @@ export default function PricingPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto text-left">
-          {/* Plano Mensal - R$ 280 / 30 dias */}
+          {/* Plano Mensal - R$ 180 / 30 dias */}
           <div className="p-8 rounded-3xl bg-zinc-900/80 border-2 border-zinc-800 flex flex-col justify-between hover:border-zinc-700 transition-all shadow-xl">
             <div>
               <div className="flex items-center justify-between">
@@ -48,7 +48,7 @@ export default function PricingPage() {
               <p className="text-xs text-zinc-400 mt-1">Flexibilidade e pagamento mês a mês</p>
 
               <div className="my-6 pb-6 border-b border-zinc-800">
-                <span className="text-5xl font-black text-white">R$ 280</span>
+                <span className="text-5xl font-black text-white">R$ 180</span>
                 <span className="text-sm text-zinc-400 ml-1.5 font-medium">/ mês</span>
                 <div className="text-[11px] text-zinc-500 mt-1.5 flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5 text-zinc-400" />
@@ -74,11 +74,11 @@ export default function PricingPage() {
             </Link>
           </div>
 
-          {/* Plano Anual - R$ 2.000 / 365 dias */}
+          {/* Plano Anual - R$ 1.200 / 365 dias */}
           <div className="p-8 rounded-3xl bg-gradient-to-b from-orange-500/10 via-zinc-900 to-zinc-950 border-2 border-orange-500 flex flex-col justify-between shadow-2xl relative">
             <span className="absolute -top-3.5 right-6 px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg flex items-center gap-1">
               <Flame className="w-3.5 h-3.5" />
-              <span>Economize R$ 1.360/ano</span>
+              <span>Economize R$ 960/ano</span>
             </span>
 
             <div>
@@ -91,11 +91,11 @@ export default function PricingPage() {
               <p className="text-xs text-zinc-400 mt-1">Garante 1 ano de tranquilidade e maior economia</p>
 
               <div className="my-6 pb-6 border-b border-zinc-800">
-                <span className="text-5xl font-black text-white">R$ 2.000</span>
+                <span className="text-5xl font-black text-white">R$ 1.200</span>
                 <span className="text-sm text-zinc-400 ml-1.5 font-medium">/ ano</span>
                 <div className="text-[11px] text-emerald-400 font-semibold mt-1.5 flex items-center gap-1">
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Equivalente a apenas ~R$ 166/mês • Aviso aos 15% (54 dias)</span>
+                  <span>Equivalente a apenas R$ 100/mês • Aviso aos 15% (54 dias)</span>
                 </div>
               </div>
 

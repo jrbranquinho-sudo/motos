@@ -43,12 +43,12 @@ import {
 import { useMotoShop } from "@/lib/store";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Plan, Tenant, WorkshopType } from "@/lib/types";
-import { getSubscriptionInfo, OFFICIAL_PLANS } from "@/lib/subscription";
+import { getSubscriptionInfo, OFFICIAL_PLANS, PlanConfig } from "@/lib/subscription";
 import { CpfCnpjInput } from "@/components/common/CpfCnpjInput";
 
 const PLAN_PRICES: Record<string, number> = {
-  MONTHLY: 280,
-  ANNUAL: 2000,
+  MONTHLY: 180,
+  ANNUAL: 1200,
   FREE: 0,
   STARTER: 79,
   PRO: 149,
@@ -70,6 +70,10 @@ export function SaasOwnerDashboard() {
     updateUser,
     liberateTrial,
     plans,
+    addPlan,
+    updatePlan,
+    togglePlanStatus,
+    deletePlan,
   } = useMotoShop();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPlanFilter, setSelectedPlanFilter] = useState<string>("ALL");
@@ -136,6 +140,19 @@ export function SaasOwnerDashboard() {
 
   const [feedbackMsg, setFeedbackMsg] = useState("");
 
+  // Plan Management Modal State (SaaS Master)
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<PlanConfig | null>(null);
+  const [formName, setFormName] = useState("");
+  const [formPrice, setFormPrice] = useState<number>(180);
+  const [formDurationDays, setFormDurationDays] = useState<number>(30);
+  const [formPeriodLabel, setFormPeriodLabel] = useState("/ mês");
+  const [formBadge, setFormBadge] = useState("");
+  const [formDescription, setFormDescription] = useState("");
+  const [formFeaturesText, setFormFeaturesText] = useState("");
+  const [formPopular, setFormPopular] = useState(false);
+  const [formActive, setFormActive] = useState(true);
+
   // Global ESC key listener to close modals
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -143,11 +160,104 @@ export function SaasOwnerDashboard() {
         setIsAddModalOpen(false);
         setIsEditModalOpen(false);
         setIsMasterProfileOpen(false);
+        setIsPlanModalOpen(false);
+        setLiberateModalTenant(null);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  const handleOpenCreatePlan = () => {
+    setEditingPlan(null);
+    setFormName("");
+    setFormPrice(180);
+    setFormDurationDays(30);
+    setFormPeriodLabel("/ mês");
+    setFormBadge("");
+    setFormDescription("Acesso completo a todas as ferramentas operacionais do sistema.");
+    setFormFeaturesText(
+      "Ordens de Serviço e Kanban ilimitados\nControle total de estoque e peças\nProntuário por Placa do veículo\nImpressão térmica 80mm e folha A4\nNotificações automáticas via WhatsApp\nSuporte prioritário"
+    );
+    setFormPopular(false);
+    setFormActive(true);
+    setIsPlanModalOpen(true);
+  };
+
+  const handleOpenEditPlan = (planItem: PlanConfig) => {
+    setEditingPlan(planItem);
+    setFormName(planItem.name);
+    setFormPrice(planItem.price);
+    setFormDurationDays(planItem.durationDays);
+    setFormPeriodLabel(planItem.periodLabel);
+    setFormBadge(planItem.badge || "");
+    setFormDescription(planItem.description);
+    setFormFeaturesText(planItem.features.join("\n"));
+    setFormPopular(!!planItem.popular);
+    setFormActive(planItem.active);
+    setIsPlanModalOpen(true);
+  };
+
+  const handleSavePlan = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formName.trim()) {
+      alert("Informe o nome do plano.");
+      return;
+    }
+
+    const features = formFeaturesText
+      .split("\n")
+      .map((f) => f.trim())
+      .filter(Boolean);
+
+    if (editingPlan) {
+      updatePlan(editingPlan.id, {
+        name: formName.trim(),
+        price: Number(formPrice),
+        formattedPrice: `R$ ${Number(formPrice).toLocaleString("pt-BR")}`,
+        durationDays: Number(formDurationDays),
+        periodLabel: formPeriodLabel.trim(),
+        badge: formBadge.trim() || undefined,
+        description: formDescription.trim(),
+        features,
+        popular: formPopular,
+        active: formActive,
+      });
+      setFeedbackMsg(`Plano "${formName}" atualizado com sucesso!`);
+    } else {
+      const created = addPlan({
+        name: formName.trim(),
+        price: Number(formPrice),
+        formattedPrice: `R$ ${Number(formPrice).toLocaleString("pt-BR")}`,
+        durationDays: Number(formDurationDays),
+        periodLabel: formPeriodLabel.trim(),
+        badge: formBadge.trim() || undefined,
+        description: formDescription.trim(),
+        features,
+        popular: formPopular,
+        active: formActive,
+      });
+      setFeedbackMsg(`Novo plano "${created.name}" cadastrado com sucesso!`);
+    }
+
+    setIsPlanModalOpen(false);
+    setTimeout(() => setFeedbackMsg(""), 5000);
+  };
+
+  const handleTogglePlan = (planItem: PlanConfig) => {
+    togglePlanStatus(planItem.id);
+    const newStatus = !planItem.active ? "reativado" : "desativado";
+    setFeedbackMsg(`Plano "${planItem.name}" ${newStatus} com sucesso!`);
+    setTimeout(() => setFeedbackMsg(""), 4000);
+  };
+
+  const handleDeletePlan = (planItem: PlanConfig) => {
+    if (confirm(`Tem certeza que deseja remover o plano "${planItem.name}"?`)) {
+      deletePlan(planItem.id);
+      setFeedbackMsg(`Plano "${planItem.name}" removido com sucesso.`);
+      setTimeout(() => setFeedbackMsg(""), 4000);
+    }
+  };
 
   const handleOpenEdit = (t: Tenant) => {
     setEditingTenant(t);
@@ -346,14 +456,14 @@ export function SaasOwnerDashboard() {
             <span>Cadastrar Nova Oficina</span>
           </button>
 
-          <Link
-            href="/settings/billing#planos"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-orange-950/40 hover:bg-orange-900/50 border border-orange-500/40 text-orange-200 font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95"
+          <a
+            href="#planos"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-orange-950/40 hover:bg-orange-900/50 border border-orange-500/40 text-orange-200 font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95 cursor-pointer"
             title="Gerenciar, criar, alterar e desativar/reativar planos oficiais"
           >
             <CreditCard className="w-4 h-4 text-orange-400" />
             <span>Nossos Planos Oficiais ({plans.length})</span>
-          </Link>
+          </a>
 
           <div className="px-3 py-2 rounded-xl bg-zinc-950/80 border border-zinc-800 text-right hidden sm:block">
             <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider block">
@@ -841,6 +951,138 @@ export function SaasOwnerDashboard() {
                       <span className="font-mono text-zinc-200 font-bold">{t.ordersCount || 0} OS</span>
                     </div>
                   </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ========================================================= */}
+      {/* 👑 NOSSOS PLANOS OFICIAIS & ASSINATURAS                   */}
+      {/* ========================================================= */}
+      <div id="planos" className="p-6 sm:p-8 rounded-3xl bg-zinc-900/90 border border-zinc-800 shadow-2xl space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800/80 pb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500/20 to-amber-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 shadow-lg shadow-orange-500/10">
+              <CreditCard className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xl sm:text-2xl font-black text-white">Nossos Planos Oficiais</h3>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                  {plans.length} planos cadastrados
+                </span>
+              </div>
+              <p className="text-xs text-zinc-400">
+                Altere valores, crie planos adicionais, desative ou reative conforme sua estratégia de vendas.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleOpenCreatePlan}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm shadow-lg shadow-orange-500/25 active:scale-95 transition-all self-start sm:self-auto"
+          >
+            <Plus className="w-4 h-4 stroke-[3]" />
+            <span>Cadastrar Novo Plano</span>
+          </button>
+        </div>
+
+        {/* Plans Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {plans.map((p) => {
+            return (
+              <div
+                key={p.id}
+                className={`p-6 rounded-2xl border transition-all flex flex-col justify-between ${
+                  !p.active
+                    ? "bg-zinc-950/60 border-zinc-800 opacity-60"
+                    : p.popular
+                    ? "bg-gradient-to-b from-orange-500/10 via-zinc-900 to-zinc-950 border-orange-500/60 ring-1 ring-orange-500/30 shadow-xl"
+                    : "bg-zinc-950/90 border-zinc-800 hover:border-zinc-700"
+                }`}
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div>
+                      {p.badge && (
+                        <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-orange-500/20 text-orange-300 border border-orange-500/30 mb-1.5">
+                          {p.badge}
+                        </span>
+                      )}
+                      <h4 className="text-lg font-black text-white">{p.name}</h4>
+                    </div>
+
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 shrink-0 ${
+                        p.active
+                          ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
+                          : "bg-zinc-800 border-zinc-700 text-zinc-400"
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${p.active ? "bg-emerald-400" : "bg-zinc-500"}`} />
+                      <span>{p.active ? "Ativo" : "Desativado"}</span>
+                    </span>
+                  </div>
+
+                  <div className="mb-3">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-black text-white font-mono">{p.formattedPrice}</span>
+                      <span className="text-xs text-zinc-400">{p.periodLabel}</span>
+                    </div>
+                    <span className="text-[11px] text-zinc-500 block mt-0.5">
+                      Vigência: {p.durationDays} dias {p.savings ? `• ${p.savings}` : ""}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-zinc-400 mb-4 leading-relaxed">{p.description}</p>
+
+                  <div className="space-y-1.5 pt-3 border-t border-zinc-800/80 mb-5">
+                    {p.features.map((feat, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-xs text-zinc-300">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span className="truncate">{feat}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditPlan(p)}
+                    className="flex-1 py-2 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-orange-400" />
+                    <span>Editar</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleTogglePlan(p)}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 ${
+                      p.active
+                        ? "bg-zinc-800/80 hover:bg-amber-500/20 text-zinc-400 hover:text-amber-300"
+                        : "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40"
+                    }`}
+                    title={p.active ? "Desativar plano (oculta para novas contratações)" : "Reativar plano"}
+                  >
+                    <Power className="w-3.5 h-3.5" />
+                    <span>{p.active ? "Desativar" : "Reativar"}</span>
+                  </button>
+
+                  {p.isCustom && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeletePlan(p)}
+                      className="p-2 rounded-xl bg-zinc-800 hover:bg-red-500/20 text-zinc-500 hover:text-red-400 transition-colors"
+                      title="Excluir plano customizado"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -1470,7 +1712,7 @@ export function SaasOwnerDashboard() {
                   }`}
                 >
                   <strong className="block text-sm text-white font-bold mb-1">Plano Mensal</strong>
-                  <span className="text-lg font-black text-blue-400">R$ 280</span>
+                  <span className="text-lg font-black text-blue-400">R$ 180</span>
                   <span className="text-zinc-400"> / 30 dias</span>
                 </button>
 
@@ -1484,10 +1726,10 @@ export function SaasOwnerDashboard() {
                   }`}
                 >
                   <span className="absolute -top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-blue-500 text-white">
-                    Anual
+                    Economize R$ 960
                   </span>
                   <strong className="block text-sm text-white font-bold mb-1">Plano Anual</strong>
-                  <span className="text-lg font-black text-blue-400">R$ 2.000</span>
+                  <span className="text-lg font-black text-blue-400">R$ 1.200</span>
                   <span className="text-zinc-400"> / 365 dias</span>
                 </button>
               </div>
@@ -1513,6 +1755,176 @@ export function SaasOwnerDashboard() {
                 Confirmar Liberação do Sistema
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Criar / Editar Plano Oficial (SaaS Master) */}
+      {isPlanModalOpen && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-3xl p-6 sm:p-8 max-w-xl w-full shadow-2xl space-y-6 my-auto max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-400">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">
+                    {editingPlan ? `Editar Plano: ${editingPlan.name}` : "Cadastrar Novo Plano Oficial"}
+                  </h3>
+                  <p className="text-xs text-zinc-400">
+                    Defina o valor, duração e regras de vigência deste plano
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPlanModalOpen(false)}
+                className="text-zinc-500 hover:text-white p-1 rounded-lg hover:bg-zinc-800"
+                title="Fechar (ESC)"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePlan} className="space-y-4">
+              <div>
+                <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                  Nome do Plano *
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Plano Semestral, Plano Trimestral..."
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                    Preço (R$) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="180.00"
+                    value={formPrice}
+                    onChange={(e) => setFormPrice(Number(e.target.value))}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 font-mono focus:border-orange-500 focus:outline-none"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                    Duração em Dias *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="30"
+                    value={formDurationDays}
+                    onChange={(e) => setFormDurationDays(Number(e.target.value))}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 font-mono focus:border-orange-500 focus:outline-none"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                    Rótulo Período
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="/ mês, / ano, / 90 dias"
+                    value={formPeriodLabel}
+                    onChange={(e) => setFormPeriodLabel(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                  Badge de Destaque (Opcional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Mais Popular, Super Promoção, Lançamento"
+                  value={formBadge}
+                  onChange={(e) => setFormBadge(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                  Descrição do Plano
+                </label>
+                <input
+                  type="text"
+                  placeholder="Resumo das vantagens para o cliente"
+                  value={formDescription}
+                  onChange={(e) => setFormDescription(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                  Recursos Inclusos (1 por linha)
+                </label>
+                <textarea
+                  rows={4}
+                  placeholder="Ordens de Serviço ilimitadas&#10;Controle de estoque completo&#10;Impressão térmica 80mm&#10;Notificações via WhatsApp"
+                  value={formFeaturesText}
+                  onChange={(e) => setFormFeaturesText(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-xs text-zinc-100 font-mono focus:border-orange-500 focus:outline-none leading-relaxed"
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-zinc-800">
+                <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formPopular}
+                    onChange={(e) => setFormPopular(e.target.checked)}
+                    className="w-4 h-4 rounded border-zinc-700 text-orange-500 focus:ring-orange-500/20"
+                  />
+                  <span>Destacar como "Mais Popular / Recomendado"</span>
+                </label>
+
+                <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formActive}
+                    onChange={(e) => setFormActive(e.target.checked)}
+                    className="w-4 h-4 rounded border-zinc-700 text-emerald-500 focus:ring-emerald-500/20"
+                  />
+                  <span>Plano Ativo (visível para contratação)</span>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setIsPlanModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-semibold hover:bg-zinc-700"
+                >
+                  Cancelar (ESC)
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-bold shadow-md shadow-orange-500/25 active:scale-95 transition-all"
+                >
+                  {editingPlan ? "Salvar Alterações do Plano" : "Cadastrar Plano Oficial"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

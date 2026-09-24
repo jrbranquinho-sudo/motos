@@ -10825,9 +10825,9 @@ export function getVehicleTypeLabel(type?: string): {
       singular: "Carro",
       plural: "Carros",
       article: "o",
-      clientVehicle: "Carro do Cliente",
-      thisVehicle: "este Carro",
-      ofVehicle: "do Carro",
+      clientVehicle: "Veículo do Cliente (Carro)",
+      thisVehicle: "este Veículo / Carro",
+      ofVehicle: "do Veículo",
     };
   }
   if (norm === "CAMINHOES" || norm === "CAMINHAO") {
@@ -10836,9 +10836,9 @@ export function getVehicleTypeLabel(type?: string): {
       singular: "Caminhão",
       plural: "Caminhões",
       article: "o",
-      clientVehicle: "Caminhão do Cliente",
-      thisVehicle: "este Caminhão",
-      ofVehicle: "do Caminhão",
+      clientVehicle: "Veículo do Cliente (Caminhão)",
+      thisVehicle: "este Veículo / Caminhão",
+      ofVehicle: "do Veículo",
     };
   }
   if (norm === "NAUTICA") {
@@ -10847,7 +10847,7 @@ export function getVehicleTypeLabel(type?: string): {
       singular: "Embarcação",
       plural: "Embarcações",
       article: "a",
-      clientVehicle: "Embarcação do Cliente",
+      clientVehicle: "Embarcação / Náutica do Cliente",
       thisVehicle: "esta Embarcação",
       ofVehicle: "da Embarcação",
     };
@@ -10858,9 +10858,9 @@ export function getVehicleTypeLabel(type?: string): {
       singular: "Moto",
       plural: "Motos",
       article: "a",
-      clientVehicle: "Moto do Cliente",
-      thisVehicle: "esta Moto",
-      ofVehicle: "da Moto",
+      clientVehicle: "Veículo do Cliente (Moto)",
+      thisVehicle: "este Veículo / Moto",
+      ofVehicle: "do Veículo",
     };
   }
   return {

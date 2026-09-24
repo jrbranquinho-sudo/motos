@@ -8,6 +8,7 @@ import {
   Search,
   MessageCircle,
   Bike,
+  Car,
   Calendar,
   AlertCircle,
   Phone,
@@ -178,7 +179,7 @@ export default function CustomersPage() {
                     {customer.name.slice(0, 2).toUpperCase()}
                   </div>
                   <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">
-                    {clientVehicles.length} moto(s)
+                    {clientVehicles.length} veículo(s)
                   </span>
                 </div>
 
@@ -200,27 +201,34 @@ export default function CustomersPage() {
                   )}
                 </div>
 
-                {/* Linked Motorcycles */}
+                {/* Linked Vehicles */}
                 <div className="p-3 rounded-xl bg-zinc-950/60 border border-zinc-800/80 space-y-2">
                   <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider block">
-                    Motos Cadastradas:
+                    Veículos Cadastrados:
                   </span>
                   {clientVehicles.length > 0 ? (
                     <div className="space-y-1.5">
-                      {clientVehicles.map((v) => (
-                        <div
-                          key={v.id}
-                          className="flex items-center justify-between text-xs text-zinc-200"
-                        >
-                          <span className="truncate pr-1 font-medium">{v.brand} {v.model}</span>
-                          <span className="font-mono text-[11px] font-bold px-1.5 py-0.2 rounded bg-zinc-800 text-orange-400 border border-zinc-700 shrink-0">
-                            {formatPlate(v.plate)}
-                          </span>
-                        </div>
-                      ))}
+                      {clientVehicles.map((v) => {
+                        const cat = String(v.category || "").toUpperCase();
+                        const catEmoji = cat === "CARROS" || cat === "CARRO" ? "🚗" : cat === "CAMINHOES" || cat === "CAMINHAO" ? "🚚" : cat === "NAUTICA" ? "⛵" : "🏍️";
+                        return (
+                          <div
+                            key={v.id}
+                            className="flex items-center justify-between text-xs text-zinc-200"
+                          >
+                            <span className="truncate pr-1 font-medium flex items-center gap-1">
+                              <span>{catEmoji}</span>
+                              <span>{v.brand} {v.model}</span>
+                            </span>
+                            <span className="font-mono text-[11px] font-bold px-1.5 py-0.2 rounded bg-zinc-800 text-orange-400 border border-zinc-700 shrink-0">
+                              {formatPlate(v.plate)}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
-                    <p className="text-xs text-zinc-500 italic">Nenhuma moto vinculada.</p>
+                    <p className="text-xs text-zinc-500 italic">Nenhum veículo vinculado.</p>
                   )}
                 </div>
               </div>
@@ -309,28 +317,38 @@ export default function CustomersPage() {
               {/* Linked Vehicles */}
               <div className="space-y-2">
                 <span className="text-xs font-bold uppercase text-orange-400 tracking-wider flex items-center gap-1.5">
-                  <Bike className="w-4 h-4" /> Motos do Cliente ({clientVehicles.length})
+                  <Car className="w-4 h-4" /> Veículos do Cliente ({clientVehicles.length})
                 </span>
                 {clientVehicles.length > 0 ? (
                   <div className="space-y-2">
-                    {clientVehicles.map((v) => (
-                      <Link
-                        key={v.id}
-                        href={`/vehicles/${v.id}`}
-                        className="flex items-center justify-between p-3 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-orange-500/50 transition-colors"
-                      >
-                        <div>
-                          <span className="font-bold text-white text-sm block">{v.brand} {v.model}</span>
-                          <span className="text-xs text-zinc-400">Ano {v.year} • {v.currentKm.toLocaleString("pt-BR")} KM</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-zinc-800 text-orange-400 border border-zinc-700">
-                            {formatPlate(v.plate)}
-                          </span>
-                          <ArrowRight className="w-4 h-4 text-zinc-500" />
-                        </div>
-                      </Link>
-                    ))}
+                    {clientVehicles.map((v) => {
+                      const cat = String(v.category || "").toUpperCase();
+                      const catLabel = cat === "CARROS" || cat === "CARRO" ? "Carro" : cat === "CAMINHOES" || cat === "CAMINHAO" ? "Caminhão" : cat === "NAUTICA" ? "Náutica" : "Moto";
+                      const catEmoji = cat === "CARROS" || cat === "CARRO" ? "🚗" : cat === "CAMINHOES" || cat === "CAMINHAO" ? "🚚" : cat === "NAUTICA" ? "⛵" : "🏍️";
+                      return (
+                        <Link
+                          key={v.id}
+                          href={`/vehicles/${v.id}`}
+                          className="flex items-center justify-between p-3 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-orange-500/50 transition-colors"
+                        >
+                          <div>
+                            <span className="font-bold text-white text-sm flex items-center gap-1.5">
+                              <span>{catEmoji}</span>
+                              <span>{v.brand} {v.model}</span>
+                            </span>
+                            <span className="text-xs text-zinc-400">
+                              {catLabel} • Ano {v.year} • {v.currentKm.toLocaleString("pt-BR")} KM
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-zinc-800 text-orange-400 border border-zinc-700">
+                              {formatPlate(v.plate)}
+                            </span>
+                            <ArrowRight className="w-4 h-4 text-zinc-500" />
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-xs text-zinc-500 italic">Nenhum veículo cadastrado para este cliente.</p>

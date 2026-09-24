@@ -120,7 +120,7 @@ export default function SubscriptionExpiredModal() {
                 </div>
 
                 <div className="mb-2">
-                  <span className="text-2xl font-black text-white">R$ 280</span>
+                  <span className="text-2xl font-black text-white">R$ 180</span>
                   <span className="text-xs text-zinc-400 ml-1">/ mês</span>
                 </div>
 
@@ -140,7 +140,7 @@ export default function SubscriptionExpiredModal() {
                 }`}
               >
                 <span className="absolute -top-2.5 right-4 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-orange-500 text-white shadow">
-                  Economize R$ 1.360
+                  Economize R$ 960
                 </span>
 
                 <div className="flex items-center justify-between mb-2">
@@ -157,12 +157,12 @@ export default function SubscriptionExpiredModal() {
                 </div>
 
                 <div className="mb-2">
-                  <span className="text-2xl font-black text-white">R$ 2.000</span>
+                  <span className="text-2xl font-black text-white">R$ 1.200</span>
                   <span className="text-xs text-zinc-400 ml-1">/ ano</span>
                 </div>
 
                 <p className="text-[11px] text-zinc-400">
-                  Garante 365 dias de estabilidade sem preocupação mensal (~R$ 166/mês).
+                  Garante 365 dias de estabilidade sem preocupação mensal (~R$ 100/mês).
                 </p>
               </button>
             </div>
@@ -190,7 +190,7 @@ export default function SubscriptionExpiredModal() {
                 <>
                   <CreditCard className="w-5 h-5" />
                   <span>
-                    Renovar Agora • {selectedPlan === "ANNUAL" ? "R$ 2.000 (365 dias)" : "R$ 280 (30 dias)"}
+                    Renovar Agora • {selectedPlan === "ANNUAL" ? "R$ 1.200 (365 dias)" : "R$ 180 (30 dias)"}
                   </span>
                   <ArrowRight className="w-4 h-4" />
                 </>
@@ -199,7 +199,7 @@ export default function SubscriptionExpiredModal() {
 
             <a
               href={`https://wa.me/5511999998888?text=${encodeURIComponent(
-                `Olá, gostaria de contratar e liberar o sistema Mot-OS para a oficina ${tenant.name} (Plano ${selectedPlan === "ANNUAL" ? "Anual R$ 2.000" : "Mensal R$ 280"}). Meu usuário é ${currentUser?.name || "Admin"}.`
+                `Olá, gostaria de contratar e liberar o sistema Mot-OS para a oficina ${tenant.name} (Plano ${selectedPlan === "ANNUAL" ? "Anual R$ 1.200" : "Mensal R$ 180"}). Meu usuário é ${currentUser?.name || "Admin"}.`
               )}`}
               target="_blank"
               rel="noopener noreferrer"

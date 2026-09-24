@@ -328,7 +328,7 @@ export default function OrdersPage() {
                               >
                                 <span>
                                   {column.id === "COMPLETED"
-                                    ? "Finalizar & Entregar Moto"
+                                    ? "Finalizar & Entregar Veículo"
                                     : `Avançar p/ ${KANBAN_COLUMNS[KANBAN_COLUMNS.findIndex((c) => c.id === column.id) + 1]?.title}`}
                                 </span>
                                 <ChevronRight className="w-3 h-3" />

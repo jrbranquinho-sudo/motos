@@ -441,7 +441,7 @@ function NewOrderForm() {
               </label>
               <textarea
                 rows={2}
-                placeholder="Ex: Barulho na roda traseira ao frear, moto engasgando acima de 5000 RPM..."
+                placeholder="Ex: Ruído na suspensão ou freios, falha no motor em aceleração, revisão preventiva programada..."
                 value={complaint}
                 onChange={(e) => setComplaint(e.target.value)}
                 className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-3 text-sm text-zinc-100 placeholder-zinc-500 focus:border-orange-500 focus:outline-none"

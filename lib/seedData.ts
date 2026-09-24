@@ -118,7 +118,7 @@ export const SEED_USERS: User[] = [
   {
     id: "user-master",
     name: "JR Branquinho",
-    email: "jrbranquinho@motoshop.com.br",
+    email: "jrbranquinho@motos.app",
     username: "jrbranquinho",
     role: "SUPER_ADMIN",
     tenantId: "tenant-1",

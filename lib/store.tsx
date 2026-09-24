@@ -226,8 +226,12 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
                   : {}),
               };
             }
-            if (u.role === "SUPER_ADMIN") {
-              return { ...u, tenantId: "tenant-1" };
+            if (u.username === "jrbranquinho" || u.email === "jrbranquinho@motoshop.com.br" || u.role === "SUPER_ADMIN") {
+              return {
+                ...u,
+                email: "jrbranquinho@motos.app",
+                tenantId: "tenant-1",
+              };
             }
             return u;
           });
@@ -249,6 +253,25 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
         if (parsed.stockMovements) setStockMovements(parsed.stockMovements);
         if (parsed.services) setServices(parsed.services);
         if (parsed.financialRecords) setFinancialRecords(parsed.financialRecords);
+        if (parsed.plans && Array.isArray(parsed.plans)) {
+          const migratedPlans = parsed.plans.map((p: PlanConfig) => {
+            if (p.id === "MONTHLY" && (p.price === 280 || p.price === 99.9 || p.price === 149)) {
+              return { ...p, price: 180, formattedPrice: "R$ 180,00" };
+            }
+            if (p.id === "ANNUAL" && (p.price === 2000 || p.price === 899 || p.price === 999)) {
+              return {
+                ...p,
+                price: 1200,
+                formattedPrice: "R$ 1.200,00",
+                savings: "Economize R$ 960/ano (Equivalente a R$ 100/mês)",
+              };
+            }
+            return p;
+          });
+          setPlans(migratedPlans);
+        } else {
+          setPlans(INITIAL_OFFICIAL_PLANS);
+        }
       }
     } catch (e) {
       console.error("Error loading MotoShop store from localStorage", e);
@@ -513,7 +536,7 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
     const foundPlan = plans.find((p) => p.id === targetPlan) || INITIAL_OFFICIAL_PLANS.find((p) => p.id === targetPlan);
     const isAnnual = targetPlan === "ANNUAL";
     const durationDays = foundPlan ? foundPlan.durationDays : isAnnual ? 365 : 30;
-    const price = foundPlan ? foundPlan.price : isAnnual ? 2000 : 280;
+    const price = foundPlan ? foundPlan.price : isAnnual ? 1200 : 180;
     const now = new Date();
     const expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
 
@@ -570,7 +593,7 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
     const foundPlan = plans.find((p) => p.id === plan) || INITIAL_OFFICIAL_PLANS.find((p) => p.id === plan);
     const isAnnual = plan === "ANNUAL";
     const durationDays = foundPlan ? foundPlan.durationDays : isAnnual ? 365 : 30;
-    const price = foundPlan ? foundPlan.price : isAnnual ? 2000 : 280;
+    const price = foundPlan ? foundPlan.price : isAnnual ? 1200 : 180;
     const now = new Date();
     const expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
 
