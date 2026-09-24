@@ -10808,3 +10808,68 @@ export function getModelsByBrand(brand: string, type?: WorkshopType | VehicleCat
 
   return [];
 }
+
+export function getVehicleTypeLabel(type?: string): {
+  label: string;
+  singular: string;
+  plural: string;
+  article: string;
+  clientVehicle: string;
+  thisVehicle: string;
+  ofVehicle: string;
+} {
+  const norm = String(type || "").toUpperCase();
+  if (norm === "CARROS" || norm === "CARRO") {
+    return {
+      label: "Carro",
+      singular: "Carro",
+      plural: "Carros",
+      article: "o",
+      clientVehicle: "Carro do Cliente",
+      thisVehicle: "este Carro",
+      ofVehicle: "do Carro",
+    };
+  }
+  if (norm === "CAMINHOES" || norm === "CAMINHAO") {
+    return {
+      label: "Caminhão",
+      singular: "Caminhão",
+      plural: "Caminhões",
+      article: "o",
+      clientVehicle: "Caminhão do Cliente",
+      thisVehicle: "este Caminhão",
+      ofVehicle: "do Caminhão",
+    };
+  }
+  if (norm === "NAUTICA") {
+    return {
+      label: "Embarcação",
+      singular: "Embarcação",
+      plural: "Embarcações",
+      article: "a",
+      clientVehicle: "Embarcação do Cliente",
+      thisVehicle: "esta Embarcação",
+      ofVehicle: "da Embarcação",
+    };
+  }
+  if (norm === "MOTOS" || norm === "MOTO") {
+    return {
+      label: "Moto",
+      singular: "Moto",
+      plural: "Motos",
+      article: "a",
+      clientVehicle: "Moto do Cliente",
+      thisVehicle: "esta Moto",
+      ofVehicle: "da Moto",
+    };
+  }
+  return {
+    label: "Veículo",
+    singular: "Veículo",
+    plural: "Veículos",
+    article: "o",
+    clientVehicle: "Veículo do Cliente",
+    thisVehicle: "este Veículo",
+    ofVehicle: "do Veículo",
+  };
+}

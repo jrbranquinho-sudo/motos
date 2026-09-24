@@ -1,7 +1,7 @@
 import { Plan, Tenant } from "./types";
 
 export interface PlanConfig {
-  id: "MONTHLY" | "ANNUAL" | "TRIAL";
+  id: string;
   name: string;
   badge?: string;
   price: number;
@@ -12,28 +12,13 @@ export interface PlanConfig {
   features: string[];
   savings?: string;
   popular?: boolean;
+  active: boolean;
+  isCustom?: boolean;
+  createdAt?: string;
 }
 
-export const OFFICIAL_PLANS: Record<"MONTHLY" | "ANNUAL" | "TRIAL", PlanConfig> = {
-  TRIAL: {
-    id: "TRIAL",
-    name: "Demonstração (1 Semana)",
-    badge: "Teste Gratuito 7 Dias",
-    price: 0,
-    formattedPrice: "Grátis (7 Dias)",
-    periodLabel: " / 7 dias",
-    durationDays: 7,
-    description: "Período de testes completo de 7 dias para conhecer o Mot-OS na prática.",
-    features: [
-      "Acesso completo a todas as ferramentas por 7 dias",
-      "Segmentado para seu tipo de oficina (Motos, Carros, etc.)",
-      "Ordens de Serviço, Kanban e Impressão térmica/A4",
-      "Controle de estoque com baixa automática",
-      "Notificações em 1 clique via WhatsApp",
-      "Suporte e consultoria para contratação definitiva",
-    ],
-  },
-  MONTHLY: {
+export const INITIAL_OFFICIAL_PLANS: PlanConfig[] = [
+  {
     id: "MONTHLY",
     name: "Plano Mensal",
     badge: "Recorrente",
@@ -51,8 +36,9 @@ export const OFFICIAL_PLANS: Record<"MONTHLY" | "ANNUAL" | "TRIAL", PlanConfig> 
       "Notificações automáticas via WhatsApp",
       "Suporte prioritário via WhatsApp e e-mail",
     ],
+    active: true,
   },
-  ANNUAL: {
+  {
     id: "ANNUAL",
     name: "Plano Anual",
     badge: "Melhor Custo-Benefício",
@@ -72,11 +58,36 @@ export const OFFICIAL_PLANS: Record<"MONTHLY" | "ANNUAL" | "TRIAL", PlanConfig> 
       "Gerente de conta dedicado",
       "SLA de suporte prioritário 99.9%",
     ],
+    active: true,
   },
+];
+
+export const OFFICIAL_PLANS: Record<string, PlanConfig> = {
+  TRIAL: {
+    id: "TRIAL",
+    name: "Demonstração (1 Semana)",
+    badge: "Teste Gratuito 7 Dias",
+    price: 0,
+    formattedPrice: "Grátis (7 Dias)",
+    periodLabel: " / 7 dias",
+    durationDays: 7,
+    description: "Período de testes completo de 7 dias para conhecer o Mot-OS na prática.",
+    features: [
+      "Acesso completo a todas as ferramentas por 7 dias",
+      "Segmentado para seu tipo de oficina (Motos, Carros, etc.)",
+      "Ordens de Serviço, Kanban e Impressão térmica/A4",
+      "Controle de estoque com baixa automática",
+      "Notificações em 1 clique via WhatsApp",
+      "Suporte e consultoria para contratação definitiva",
+    ],
+    active: true,
+  },
+  MONTHLY: INITIAL_OFFICIAL_PLANS[0],
+  ANNUAL: INITIAL_OFFICIAL_PLANS[1],
 };
 
 export interface SubscriptionInfo {
-  planId: "MONTHLY" | "ANNUAL" | "TRIAL" | Plan;
+  planId: string;
   planName: string;
   price: number;
   totalDays: number;
@@ -101,8 +112,19 @@ export interface SubscriptionInfo {
 /**
  * Calculates current subscription state and countdown metrics for a tenant
  */
-export function getSubscriptionInfo(tenant: Tenant, referenceDate: Date = new Date()): SubscriptionInfo {
+export function getSubscriptionInfo(
+  tenant: Tenant,
+  referenceDate: Date = new Date(),
+  customPlans?: PlanConfig[]
+): SubscriptionInfo {
   const isTrial = tenant.plan === "TRIAL" || tenant.isTrial === true || tenant.subscriptionCycle === "TRIAL";
+  const allPlans = customPlans && customPlans.length > 0 ? customPlans : INITIAL_OFFICIAL_PLANS;
+  
+  // Find matching plan from allPlans or fallback
+  const matchedPlan = !isTrial
+    ? allPlans.find((p) => p.id === tenant.plan || p.id === tenant.subscriptionCycle)
+    : null;
+
   const isAnnual =
     !isTrial && (
       tenant.subscriptionCycle === "ANNUAL" ||
@@ -110,9 +132,24 @@ export function getSubscriptionInfo(tenant: Tenant, referenceDate: Date = new Da
       tenant.subscriptionDurationDays === 365
     );
 
-  const planId: "MONTHLY" | "ANNUAL" | "TRIAL" = isTrial ? "TRIAL" : isAnnual ? "ANNUAL" : "MONTHLY";
-  const planConfig = OFFICIAL_PLANS[planId];
-  const totalDays = isTrial ? (tenant.subscriptionDurationDays || 7) : isAnnual ? 365 : 30;
+  const planId: string = isTrial ? "TRIAL" : matchedPlan ? matchedPlan.id : isAnnual ? "ANNUAL" : "MONTHLY";
+  const planConfig: PlanConfig = isTrial
+    ? OFFICIAL_PLANS.TRIAL
+    : matchedPlan || OFFICIAL_PLANS[planId] || {
+        id: planId,
+        name: planId,
+        price: tenant.subscriptionPrice || 280,
+        formattedPrice: `R$ ${tenant.subscriptionPrice || 280}`,
+        periodLabel: "/ período",
+        durationDays: tenant.subscriptionDurationDays || 30,
+        description: "Plano do Sistema",
+        features: [],
+        active: true,
+      };
+
+  const totalDays = isTrial
+    ? (tenant.subscriptionDurationDays || 7)
+    : tenant.subscriptionDurationDays || planConfig.durationDays || (isAnnual ? 365 : 30);
   const warningDaysThreshold = isTrial ? 2 : totalDays * 0.15;
   const price = tenant.subscriptionPrice ?? planConfig.price;
 

@@ -23,6 +23,7 @@ import {
   Copy,
 } from "lucide-react";
 import { useMotoShop } from "@/lib/store";
+import { MotOsLogo } from "@/components/common/MotOsLogo";
 import { getSubscriptionInfo, SubscriptionInfo } from "@/lib/subscription";
 import { Tenant, User } from "@/lib/types";
 
@@ -217,14 +218,12 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center text-white mx-auto shadow-xl shadow-orange-500/30">
-            <Wrench className="w-7 h-7" />
-          </div>
+          <MotOsLogo size={56} className="mx-auto" />
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            MotoShop
+            Mot-OS
           </h1>
           <p className="text-xs sm:text-sm text-zinc-400">
-            Portal de Acesso Seguro
+            Portal de Acesso Seguro • Motos, Carros, Caminhões e Náutica
           </p>
         </div>
 
@@ -329,7 +328,7 @@ export default function LoginPage() {
             <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between">
               <div>
                 <span className="text-[10px] uppercase font-bold text-zinc-500 block">
-                  Token Gerado (SMS / Authenticator)
+                  Token Seguro Mot-OS (SMS / Authenticator)
                 </span>
                 <span className="text-xl font-mono font-black text-emerald-400 tracking-wider">
                   {simulatedToken}

@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useMotoShop } from "@/lib/store";
 import { formatPlanName } from "@/lib/utils";
+import { MotOsLogo } from "@/components/common/MotOsLogo";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -171,9 +172,7 @@ export function Sidebar() {
       {/* Brand Header */}
       <div className="p-4 border-b border-slate-800/80 flex items-center justify-between">
         <Link href="/dashboard" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/30 group-hover:scale-105 transition-transform">
-            <Wrench className="w-5 h-5" />
-          </div>
+          <MotOsLogo size={36} className="group-hover:scale-105 transition-transform" />
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-black text-lg text-white tracking-tight">Mot-OS</span>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Wrench, ArrowRight, Building2, UserCheck, ShieldCheck } from "lucide-react";
 import { useMotoShop } from "@/lib/store";
+import { MotOsLogo } from "@/components/common/MotOsLogo";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -36,12 +37,10 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-[#0f0f0f] flex flex-col justify-center items-center p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center text-white mx-auto shadow-xl shadow-orange-500/30">
-            <Wrench className="w-6 h-6" />
-          </div>
-          <h1 className="text-2xl font-black text-white tracking-tight">Criar Conta no MotoShop</h1>
+          <MotOsLogo size={52} className="mx-auto" />
+          <h1 className="text-2xl font-black text-white tracking-tight">Criar Conta no Mot-OS</h1>
           <p className="text-xs text-zinc-400">
-            Cadastre sua oficina e teste 14 dias grátis com tudo liberado
+            Cadastre sua oficina e teste 7 dias grátis com tudo liberado
           </p>
         </div>
 

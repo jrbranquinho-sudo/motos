@@ -114,10 +114,10 @@ export default function VehicleDetailPage({
         {!isMechanic && (
           <Link
             href={`/orders/new?vehicleId=${vehicle.id}`}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold text-sm shadow-lg shadow-orange-500/25 hover:from-orange-600 hover:to-amber-600 transition-all active:scale-95"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm shadow-lg shadow-blue-500/25 hover:from-blue-500 hover:to-indigo-500 transition-all active:scale-95"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
-            <span>Abrir Nova OS para esta Moto</span>
+            <span>Abrir Nova OS para este Veículo</span>
           </Link>
         )}
       </div>
@@ -306,7 +306,7 @@ export default function VehicleDetailPage({
 
           {orders.length === 0 && maintenanceHistory.length === 0 && (
             <div className="py-8 text-center text-xs text-zinc-500">
-              Nenhuma manutenção registrada para esta moto ainda.
+              Nenhuma manutenção registrada para este veículo ainda.
             </div>
           )}
         </div>

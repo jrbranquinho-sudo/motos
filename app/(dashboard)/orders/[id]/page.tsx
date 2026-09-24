@@ -13,6 +13,9 @@ import {
   MessageCircle,
   Share2,
   Bike,
+  Car,
+  Truck,
+  Ship,
   UserCheck,
   CheckCircle2,
   AlertTriangle,
@@ -28,6 +31,7 @@ import {
 import { useMotoShop } from "@/lib/store";
 import { ItemType, OSItem, OSStatus } from "@/lib/types";
 import { formatCurrency, formatDateTime, formatPlate, getWhatsAppOSLink, STATUS_MAP } from "@/lib/utils";
+import { getVehicleTypeLabel } from "@/lib/vehicleCatalog";
 
 const STATUS_STEPS: OSStatus[] = [
   "OPEN",
@@ -96,12 +100,22 @@ export default function OrderDetailPage({
   const customer = vehicle?.customer;
   const mechanic = order.mechanic;
 
+  const vehicleTerm = getVehicleTypeLabel(vehicle?.category || tenant.workshopType);
+  const VehicleIcon =
+    vehicle?.category === "CARRO" || tenant.workshopType === "CARROS"
+      ? Car
+      : vehicle?.category === "CAMINHAO" || tenant.workshopType === "CAMINHOES"
+      ? Truck
+      : vehicle?.category === "NAUTICA" || tenant.workshopType === "NAUTICA"
+      ? Ship
+      : Bike;
+
   const whatsAppLink = customer?.phone
     ? getWhatsAppOSLink(
         customer.phone,
         customer.name,
         order.osNumber,
-        vehicle?.model || "Moto",
+        vehicle?.model || vehicleTerm.singular,
         vehicle?.plate || "",
         order.status,
         order.totalAmount
@@ -345,11 +359,11 @@ export default function OrderDetailPage({
           </button>
         </div>
 
-        {/* Motorcycle Info */}
+        {/* Vehicle Info */}
         <div className="p-5 rounded-2xl bg-zinc-900/80 border border-zinc-800 shadow-lg">
           <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-            <Bike className="w-4 h-4 text-orange-400" />
-            <span>Motocicleta</span>
+            <VehicleIcon className="w-4 h-4 text-blue-400" />
+            <span>{vehicleTerm.clientVehicle}</span>
           </span>
           {vehicle ? (
             <div className="mt-1">
@@ -357,17 +371,17 @@ export default function OrderDetailPage({
                 <span className="font-bold text-white text-base">
                   {vehicle.brand} {vehicle.model}
                 </span>
-                <span className="font-mono text-xs font-black px-2 py-0.5 rounded bg-zinc-800 text-orange-400 border border-zinc-700">
+                <span className="font-mono text-xs font-black px-2 py-0.5 rounded bg-zinc-800 text-blue-400 border border-zinc-700">
                   {formatPlate(vehicle.plate)}
                 </span>
               </div>
               <p className="text-xs text-zinc-400 mt-0.5">
-                KM Entrada: {order.kmAtService.toLocaleString("pt-BR")} • Próx:{" "}
-                {order.kmNextService ? `${order.kmNextService.toLocaleString("pt-BR")} KM` : "Não definido"}
+                {vehicle.category === "NAUTICA" ? "Horímetro:" : "KM Entrada:"} {order.kmAtService.toLocaleString("pt-BR")} • Próx:{" "}
+                {order.kmNextService ? `${order.kmNextService.toLocaleString("pt-BR")} ${vehicle.category === "NAUTICA" ? "Horas" : "KM"}` : "Não definido"}
               </p>
             </div>
           ) : (
-            <p className="text-xs text-zinc-500 mt-1">Dados da moto indisponíveis</p>
+            <p className="text-xs text-zinc-500 mt-1">Dados do veículo indisponíveis</p>
           )}
         </div>
 
@@ -415,8 +429,8 @@ export default function OrderDetailPage({
       {order.checklist && order.checklist.length > 0 && (
         <div className="p-5 rounded-2xl bg-zinc-900/80 border border-zinc-800">
           <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-            <CheckSquare className="w-4 h-4 text-orange-400" />
-            <span>Checklist de Vistoria da Moto</span>
+            <CheckSquare className="w-4 h-4 text-blue-400" />
+            <span>Checklist de Vistoria {vehicleTerm.ofVehicle}</span>
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {order.checklist.map((item) => (
@@ -558,7 +572,7 @@ export default function OrderDetailPage({
                     <span>Registro de Mão de Obra Realizada</span>
                   </div>
                   <p className="text-[11px] text-zinc-400">
-                    Registre os serviços e reparos executados nesta moto. O apontamento de peças e precificação são restritos à recepção.
+                    Registre os serviços e reparos executados em {vehicleTerm.thisVehicle}. O apontamento de peças e precificação são restritos à recepção.
                   </p>
                 </div>
               ) : (

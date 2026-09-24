@@ -1,5 +1,5 @@
 export type Role = 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'MECHANIC' | 'RECEPTIONIST';
-export type Plan = 'MONTHLY' | 'ANNUAL' | 'FREE' | 'STARTER' | 'PRO' | 'ENTERPRISE' | 'TRIAL';
+export type Plan = 'MONTHLY' | 'ANNUAL' | 'FREE' | 'STARTER' | 'PRO' | 'ENTERPRISE' | 'TRIAL' | (string & {});
 export type WorkshopType = 'MOTOS' | 'CARROS' | 'CAMINHOES' | 'NAUTICA' | 'GERAL';
 
 export type OSStatus = 
@@ -35,7 +35,7 @@ export interface Tenant {
   status?: 'ACTIVE' | 'PENDING' | 'SUSPENDED';
 
   // Subscription lifecycle
-  subscriptionCycle?: 'MONTHLY' | 'ANNUAL' | 'TRIAL';
+  subscriptionCycle?: 'MONTHLY' | 'ANNUAL' | 'TRIAL' | string;
   subscriptionPrice?: number;
   subscriptionDurationDays?: number; // 7, 30 or 365
   subscriptionStartedAt?: string;
@@ -100,6 +100,7 @@ export interface Vehicle {
   plate: string;        // ABC1D23 ou ABC-1234
   brand: string;        // Honda, Yamaha, etc.
   model: string;        // CG 160 Titan, Fazer 250, etc.
+  category?: WorkshopType | string; // MOTOS, CARROS, CAMINHOES, NAUTICA
   year: number;
   color?: string;
   chassis?: string;

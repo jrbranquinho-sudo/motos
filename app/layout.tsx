@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MotoShop — Gestão Inteligente para Oficinas de Motos",
+  title: "Mot-OS — Gestão Inteligente para Oficinas Mecânicas",
   description:
-    "Sistema completo para oficinas e autopeças de motos: Ordem de Serviço, Busca por Placa, Estoque em Tempo Real e Impressão Térmica 80mm.",
+    "Sistema completo para oficinas de Motos, Carros, Caminhões e Náutica: Ordem de Serviço, Prontuário por Placa, Estoque em Tempo Real, Comissões e Impressão Térmica 80mm.",
   icons: {
     icon: "/icon.svg",
     shortcut: "/icon.svg",

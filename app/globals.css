@@ -56,10 +56,19 @@ body {
 
 /* Print CSS */
 @media print {
-  body {
+  @page {
+    margin: 0;
+    size: auto;
+  }
+
+  html, body {
     background: #ffffff !important;
     color: #000000 !important;
-    font-size: 12pt;
+    font-size: 11pt;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   .no-print,
@@ -85,14 +94,19 @@ body {
     color: #000000 !important;
   }
 
-  /* Thermal 80mm paper */
+  /* Thermal 80mm & 58mm paper */
   .thermal-receipt {
-    width: 76mm !important;
-    max-width: 76mm !important;
+    width: 100% !important;
+    max-width: 80mm !important;
     margin: 0 auto !important;
-    padding: 2mm !important;
+    padding: 2mm 3mm !important;
     font-size: 9pt !important;
     line-height: 1.2 !important;
     font-family: "Courier New", Courier, monospace !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    page-break-inside: avoid;
   }
 }

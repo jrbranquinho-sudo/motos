@@ -291,7 +291,7 @@ function NewOrderForm() {
               <span>Abertura de Nova OS</span>
             </h1>
             <p className="text-xs text-zinc-400">
-              Preencha os dados da moto, queixa do cliente e adicione peças do estoque
+              Preencha os dados do veículo, queixa do cliente e adicione peças do estoque
             </p>
           </div>
         </div>
@@ -304,24 +304,24 @@ function NewOrderForm() {
           <div className="p-5 rounded-2xl bg-zinc-900/80 border border-zinc-800 space-y-4">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Bike className="w-4 h-4 text-orange-400" />
-                <span>Veículo / Placa</span>
+                <Bike className="w-4 h-4 text-blue-400" />
+                <span>Veículo do Cliente / Placa</span>
               </label>
               <button
                 type="button"
                 onClick={() => setIsNewVehicleModal(true)}
-                className="text-xs text-orange-400 hover:underline font-semibold"
+                className="text-xs text-blue-400 hover:underline font-semibold"
               >
-                + Cadastrar Moto
+                + Cadastrar Veículo
               </button>
             </div>
 
             <select
               value={selectedVehicleId}
               onChange={(e) => setSelectedVehicleId(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-3 text-sm text-zinc-100 font-medium focus:outline-none focus:border-orange-500"
+              className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-3 text-sm text-zinc-100 font-medium focus:outline-none focus:border-blue-500"
             >
-              <option value="">Selecione a moto pela placa...</option>
+              <option value="">Selecione o veículo do cliente pela placa...</option>
               {vehicles
                 .filter((v) => v.tenantId === tenant.id)
                 .map((v) => (
@@ -875,9 +875,9 @@ function NewOrderForm() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold"
+                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
                 >
-                  Salvar Moto & Selecionar
+                  Salvar Veículo & Selecionar
                 </button>
               </div>
             </form>

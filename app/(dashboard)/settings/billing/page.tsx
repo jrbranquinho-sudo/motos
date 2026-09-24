@@ -19,9 +19,17 @@ import {
   AlertOctagon,
   HelpCircle,
   Flame,
+  Plus,
+  Edit3,
+  Power,
+  Trash2,
+  X,
+  Eye,
+  EyeOff,
+  Crown,
 } from "lucide-react";
 import { useMotoShop } from "@/lib/store";
-import { OFFICIAL_PLANS, getSubscriptionInfo, SubscriptionInfo } from "@/lib/subscription";
+import { PlanConfig, getSubscriptionInfo, SubscriptionInfo } from "@/lib/subscription";
 
 export default function BillingPage() {
   const {
@@ -33,21 +41,42 @@ export default function BillingPage() {
     users,
     currentUser,
     isMechanic,
+    isSaasOwner,
+    plans,
+    addPlan,
+    updatePlan,
+    togglePlanStatus,
+    deletePlan,
   } = useMotoShop();
 
-  const [subInfo, setSubInfo] = useState<SubscriptionInfo>(() => getSubscriptionInfo(tenant));
+  const [subInfo, setSubInfo] = useState<SubscriptionInfo>(() =>
+    getSubscriptionInfo(tenant, new Date(), plans)
+  );
   const [successMsg, setSuccessMsg] = useState("");
   const [isRenewing, setIsRenewing] = useState(false);
+
+  // Plan Management Modal State (SaaS Master)
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<PlanConfig | null>(null);
+  const [formName, setFormName] = useState("");
+  const [formPrice, setFormPrice] = useState<number>(280);
+  const [formDurationDays, setFormDurationDays] = useState<number>(30);
+  const [formPeriodLabel, setFormPeriodLabel] = useState("/ mês");
+  const [formBadge, setFormBadge] = useState("");
+  const [formDescription, setFormDescription] = useState("");
+  const [formFeaturesText, setFormFeaturesText] = useState("");
+  const [formPopular, setFormPopular] = useState(false);
+  const [formActive, setFormActive] = useState(true);
 
   // Live countdown ticker
   useEffect(() => {
     const update = () => {
-      setSubInfo(getSubscriptionInfo(tenant));
+      setSubInfo(getSubscriptionInfo(tenant, new Date(), plans));
     };
     update();
     const timer = setInterval(update, 1000);
     return () => clearInterval(timer);
-  }, [tenant]);
+  }, [tenant, plans]);
 
   if (isMechanic) {
     return (
@@ -69,14 +98,15 @@ export default function BillingPage() {
     );
   }
 
-  const handleRenew = (planId: "MONTHLY" | "ANNUAL") => {
+  const handleRenew = (planId: string) => {
     setIsRenewing(true);
     setTimeout(() => {
       renewSubscription(tenant.id, planId);
       setIsRenewing(false);
+      const targetPlan = plans.find((p) => p.id === planId);
       setSuccessMsg(
-        `Assinatura renovada com sucesso no ${OFFICIAL_PLANS[planId].name}! Novo ciclo de ${
-          planId === "ANNUAL" ? "365" : "30"
+        `Assinatura atualizada com sucesso para "${targetPlan?.name || planId}"! Novo ciclo de ${
+          targetPlan?.durationDays || 30
         } dias iniciado.`
       );
       setTimeout(() => setSuccessMsg(""), 5000);
@@ -89,8 +119,115 @@ export default function BillingPage() {
     setTimeout(() => setSuccessMsg(""), 4000);
   };
 
+  // Open modal to create a new plan
+  const handleOpenCreatePlan = () => {
+    setEditingPlan(null);
+    setFormName("");
+    setFormPrice(350);
+    setFormDurationDays(30);
+    setFormPeriodLabel("/ mês");
+    setFormBadge("");
+    setFormDescription("Acesso completo a todas as ferramentas operacionais do sistema.");
+    setFormFeaturesText(
+      "Ordens de Serviço e Kanban ilimitados\nControle total de estoque e peças\nProntuário por Placa do veículo\nImpressão térmica 80mm e folha A4\nNotificações automáticas via WhatsApp\nSuporte prioritário"
+    );
+    setFormPopular(false);
+    setFormActive(true);
+    setIsPlanModalOpen(true);
+  };
+
+  // Open modal to edit existing plan
+  const handleOpenEditPlan = (plan: PlanConfig) => {
+    setEditingPlan(plan);
+    setFormName(plan.name);
+    setFormPrice(plan.price);
+    setFormDurationDays(plan.durationDays);
+    setFormPeriodLabel(plan.periodLabel);
+    setFormBadge(plan.badge || "");
+    setFormDescription(plan.description);
+    setFormFeaturesText(plan.features.join("\n"));
+    setFormPopular(!!plan.popular);
+    setFormActive(plan.active);
+    setIsPlanModalOpen(true);
+  };
+
+  const handleSavePlan = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formName.trim()) {
+      alert("Informe o nome do plano.");
+      return;
+    }
+
+    const features = formFeaturesText
+      .split("\n")
+      .map((f) => f.trim())
+      .filter(Boolean);
+
+    if (editingPlan) {
+      updatePlan(editingPlan.id, {
+        name: formName.trim(),
+        price: Number(formPrice),
+        formattedPrice: `R$ ${Number(formPrice).toLocaleString("pt-BR")}`,
+        durationDays: Number(formDurationDays),
+        periodLabel: formPeriodLabel.trim(),
+        badge: formBadge.trim() || undefined,
+        description: formDescription.trim(),
+        features,
+        popular: formPopular,
+        active: formActive,
+      });
+      setSuccessMsg(`Plano "${formName}" atualizado com sucesso!`);
+    } else {
+      const created = addPlan({
+        name: formName.trim(),
+        price: Number(formPrice),
+        formattedPrice: `R$ ${Number(formPrice).toLocaleString("pt-BR")}`,
+        durationDays: Number(formDurationDays),
+        periodLabel: formPeriodLabel.trim(),
+        badge: formBadge.trim() || undefined,
+        description: formDescription.trim(),
+        features,
+        popular: formPopular,
+        active: formActive,
+      });
+      setSuccessMsg(`Novo plano "${created.name}" cadastrado com sucesso!`);
+    }
+
+    setIsPlanModalOpen(false);
+    setTimeout(() => setSuccessMsg(""), 5000);
+  };
+
+  const handleTogglePlan = (plan: PlanConfig) => {
+    togglePlanStatus(plan.id);
+    const newStatus = !plan.active ? "reativado" : "desativado";
+    setSuccessMsg(`Plano "${plan.name}" ${newStatus} com sucesso!`);
+    setTimeout(() => setSuccessMsg(""), 4000);
+  };
+
+  const handleDeletePlan = (plan: PlanConfig) => {
+    if (confirm(`Tem certeza que deseja remover o plano "${plan.name}"?`)) {
+      deletePlan(plan.id);
+      setSuccessMsg(`Plano "${plan.name}" removido com sucesso.`);
+      setTimeout(() => setSuccessMsg(""), 4000);
+    }
+  };
+
+  // Active plans for tenants vs All plans for SaaS Master
+  const displayPlans = isSaasOwner ? plans : plans.filter((p) => p.active);
+
   const currentPlanConfig =
-    OFFICIAL_PLANS[subInfo.planId === "ANNUAL" ? "ANNUAL" : "MONTHLY"];
+    plans.find((p) => p.id === subInfo.planId) ||
+    plans[0] || {
+      id: "MONTHLY",
+      name: "Plano Mensal",
+      price: 280,
+      formattedPrice: "R$ 280",
+      periodLabel: "/ mês",
+      durationDays: 30,
+      description: "Plano Operacional",
+      features: [],
+      active: true,
+    };
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-16">
@@ -99,10 +236,10 @@ export default function BillingPage() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2.5">
             <CreditCard className="w-7 h-7 text-orange-500" />
-            <span>Planos & Assinaturas da Oficina</span>
+            <span>Planos & Assinaturas</span>
           </h1>
           <p className="text-sm text-zinc-400">
-            Gerencie o ciclo de vigência, contador regressivo e renovação da plataforma
+            Gerencie o ciclo de vigência, contador regressivo e planos da plataforma
           </p>
         </div>
 
@@ -151,7 +288,7 @@ export default function BillingPage() {
             </div>
           </div>
           <button
-            onClick={() => handleRenew("MONTHLY")}
+            onClick={() => handleRenew(subInfo.planId || "MONTHLY")}
             className="px-5 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-black text-xs shadow-lg transition-all shrink-0"
           >
             Renovar Imediatamente
@@ -175,7 +312,7 @@ export default function BillingPage() {
             </div>
           </div>
           <button
-            onClick={() => handleRenew(subInfo.planId === "ANNUAL" ? "ANNUAL" : "MONTHLY")}
+            onClick={() => handleRenew(subInfo.planId || "MONTHLY")}
             className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-black text-xs shadow-lg transition-all shrink-0"
           >
             Renovar Agora
@@ -207,7 +344,7 @@ export default function BillingPage() {
               </span>
             </div>
 
-            <div className="flex items-baseline gap-3 mt-1.5">
+            <div className="flex flex-wrap items-baseline gap-3 mt-1.5">
               <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
                 {currentPlanConfig.name}
               </h2>
@@ -231,9 +368,9 @@ export default function BillingPage() {
             </span>
 
             {/* Countdown Flip Clocks */}
-            <div className="flex items-center gap-2 text-center">
-              <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 min-w-[64px]">
-                <div className="text-2xl sm:text-3xl font-black font-mono text-white">
+            <div className="flex items-center gap-1.5 sm:gap-2 text-center">
+              <div className="p-2.5 sm:p-3 rounded-2xl bg-zinc-950 border border-zinc-800 min-w-[56px] sm:min-w-[64px]">
+                <div className="text-xl sm:text-3xl font-black font-mono text-white">
                   {subInfo.isExpired ? "00" : String(subInfo.daysRemaining).padStart(2, "0")}
                 </div>
                 <div className="text-[9px] uppercase font-bold text-zinc-500 tracking-wider mt-0.5">
@@ -241,10 +378,10 @@ export default function BillingPage() {
                 </div>
               </div>
 
-              <span className="text-zinc-600 font-bold text-xl">:</span>
+              <span className="text-zinc-600 font-bold text-lg sm:text-xl">:</span>
 
-              <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 min-w-[60px]">
-                <div className="text-2xl sm:text-3xl font-black font-mono text-white">
+              <div className="p-2.5 sm:p-3 rounded-2xl bg-zinc-950 border border-zinc-800 min-w-[52px] sm:min-w-[60px]">
+                <div className="text-xl sm:text-3xl font-black font-mono text-white">
                   {subInfo.isExpired ? "00" : String(subInfo.hoursRemaining).padStart(2, "0")}
                 </div>
                 <div className="text-[9px] uppercase font-bold text-zinc-500 tracking-wider mt-0.5">
@@ -252,10 +389,10 @@ export default function BillingPage() {
                 </div>
               </div>
 
-              <span className="text-zinc-600 font-bold text-xl">:</span>
+              <span className="text-zinc-600 font-bold text-lg sm:text-xl">:</span>
 
-              <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 min-w-[60px]">
-                <div className="text-2xl sm:text-3xl font-black font-mono text-white">
+              <div className="p-2.5 sm:p-3 rounded-2xl bg-zinc-950 border border-zinc-800 min-w-[52px] sm:min-w-[60px]">
+                <div className="text-xl sm:text-3xl font-black font-mono text-white">
                   {subInfo.isExpired ? "00" : String(subInfo.minutesRemaining).padStart(2, "0")}
                 </div>
                 <div className="text-[9px] uppercase font-bold text-zinc-500 tracking-wider mt-0.5">
@@ -263,10 +400,10 @@ export default function BillingPage() {
                 </div>
               </div>
 
-              <span className="text-zinc-600 font-bold text-xl">:</span>
+              <span className="text-zinc-600 font-bold text-lg sm:text-xl">:</span>
 
-              <div className="p-3 rounded-2xl bg-zinc-950 border border-zinc-800 min-w-[60px]">
-                <div className="text-2xl sm:text-3xl font-black font-mono text-orange-400">
+              <div className="p-2.5 sm:p-3 rounded-2xl bg-zinc-950 border border-zinc-800 min-w-[52px] sm:min-w-[60px]">
+                <div className="text-xl sm:text-3xl font-black font-mono text-orange-400">
                   {subInfo.isExpired ? "00" : String(subInfo.secondsRemaining).padStart(2, "0")}
                 </div>
                 <div className="text-[9px] uppercase font-bold text-zinc-500 tracking-wider mt-0.5">
@@ -317,7 +454,7 @@ export default function BillingPage() {
             />
           </div>
 
-          <div className="flex items-center justify-between text-[11px] text-zinc-500">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-zinc-500">
             <span>Início: {subInfo.startedAt.toLocaleDateString("pt-BR")}</span>
             <span className="text-amber-400/80 font-medium">
               Limite de Alerta (15%): {subInfo.warningDaysThreshold} dias
@@ -361,155 +498,192 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {/* 2 Official Plans Cards */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-xl font-bold text-white">Nossos Planos Oficiais</h3>
-          <p className="text-xs text-zinc-400">
-            Escolha entre a flexibilidade do ciclo mensal ou a máxima economia com o plano anual
-          </p>
+      {/* ========================================================= */}
+      {/* NOSSOS PLANOS OFICIAIS (COM CRIAÇÃO/EDIÇÃO/DESATIVAÇÃO)    */}
+      {/* ========================================================= */}
+      <div id="planos" className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-xl sm:text-2xl font-black text-white">Nossos Planos Oficiais</h3>
+              {isSaasOwner && (
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                  Gestão SaaS Master
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-zinc-400">
+              {isSaasOwner
+                ? `Você tem ${plans.length} planos cadastrados (${plans.filter((p) => p.active).length} ativos, ${plans.filter((p) => !p.active).length} desativados). Você pode criar, alterar, desativar e reativar quando desejar.`
+                : "Escolha o ciclo de contratação ideal para sua oficina mecânica e aproveite todas as funcionalidades."}
+            </p>
+          </div>
+
+          {/* Master Action: Create Plan Button */}
+          {isSaasOwner && (
+            <button
+              onClick={handleOpenCreatePlan}
+              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs sm:text-sm shadow-lg shadow-orange-500/25 active:scale-95 transition-all self-start sm:self-auto"
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>Criar Novo Plano</span>
+            </button>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Monthly Plan (R$ 280 / 30 dias) */}
-          <div
-            className={`rounded-3xl p-6 sm:p-8 flex flex-col justify-between transition-all relative border-2 ${
-              subInfo.planId === "MONTHLY"
-                ? "bg-zinc-900 border-orange-500 shadow-2xl shadow-orange-950/20"
-                : "bg-zinc-900/60 border-zinc-800 hover:border-zinc-700"
-            }`}
-          >
-            {subInfo.planId === "MONTHLY" && (
-              <span className="absolute -top-3 left-6 px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-orange-500 text-white shadow">
-                Seu Plano Atual
-              </span>
-            )}
+        {/* Plan Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {displayPlans.map((plan) => {
+            const isCurrent = subInfo.planId === plan.id;
+            const isInactive = !plan.active;
 
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-2xl font-black text-white">Plano Mensal</h4>
-                <span className="text-xs font-bold text-zinc-400 font-mono bg-zinc-800 px-2.5 py-1 rounded-lg">
-                  30 dias
-                </span>
-              </div>
+            return (
+              <div
+                key={plan.id}
+                className={`rounded-3xl p-6 sm:p-7 flex flex-col justify-between transition-all relative border-2 ${
+                  isInactive
+                    ? "bg-zinc-950/60 border-zinc-800/80 opacity-75"
+                    : isCurrent
+                    ? "bg-zinc-900 border-orange-500 shadow-2xl shadow-orange-950/30"
+                    : plan.popular
+                    ? "bg-gradient-to-b from-orange-500/10 via-zinc-900 to-zinc-950 border-orange-500/80 shadow-xl"
+                    : "bg-zinc-900/60 border-zinc-800 hover:border-zinc-700"
+                }`}
+              >
+                {/* Status Badges */}
+                <div className="absolute -top-3 left-6 right-6 flex items-center justify-between pointer-events-none">
+                  <div className="flex items-center gap-1.5">
+                    {isCurrent && (
+                      <span className="px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-orange-500 text-white shadow">
+                        Plano Atual
+                      </span>
+                    )}
+                    {isInactive && isSaasOwner && (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-500/20 text-red-300 border border-red-500/40">
+                        Desativado
+                      </span>
+                    )}
+                    {!isInactive && isSaasOwner && (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                        Ativo
+                      </span>
+                    )}
+                  </div>
 
-              <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
-                Ideal para oficinas que preferem pagar mês a mês sem fidelidade.
-              </p>
+                  {plan.badge && (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow flex items-center gap-1">
+                      <Flame className="w-3 h-3" />
+                      <span>{plan.badge}</span>
+                    </span>
+                  )}
+                </div>
 
-              <div className="my-6 pb-6 border-b border-zinc-800">
-                <span className="text-4xl sm:text-5xl font-black text-white">R$ 280</span>
-                <span className="text-sm text-zinc-400 ml-1.5 font-medium">/ mês</span>
-                <div className="text-[11px] text-zinc-500 mt-1">
-                  Vigência de 30 dias com contador regressivo e aviso aos 4,5 dias restantes (15%).
+                <div>
+                  <div className="flex items-center justify-between mb-2 mt-1">
+                    <h4 className="text-xl sm:text-2xl font-black text-white">{plan.name}</h4>
+                    <span className="text-xs font-bold text-zinc-400 font-mono bg-zinc-800 px-2.5 py-1 rounded-lg">
+                      {plan.durationDays} dias
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-zinc-400 mb-5 leading-relaxed min-h-[32px]">
+                    {plan.description}
+                  </p>
+
+                  <div className="my-4 pb-5 border-b border-zinc-800">
+                    <span className="text-3xl sm:text-4xl font-black text-white">
+                      {plan.formattedPrice}
+                    </span>
+                    <span className="text-xs sm:text-sm text-zinc-400 ml-1.5 font-medium">
+                      {plan.periodLabel}
+                    </span>
+                    {plan.savings && (
+                      <div className="text-[11px] text-emerald-400 font-semibold mt-1 flex items-center gap-1">
+                        <TrendingUp className="w-3.5 h-3.5" />
+                        <span>{plan.savings}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Features list */}
+                  <div className="space-y-2.5 text-xs mb-6">
+                    {plan.features.map((feat, idx) => (
+                      <div key={idx} className="flex items-start gap-2.5 text-zinc-300">
+                        <Check className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+                        <span>{feat}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-zinc-800/80">
+                  {/* SaaS Master Action Controls */}
+                  {isSaasOwner && (
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditPlan(plan)}
+                        className="py-2 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-blue-400" />
+                        <span>Editar</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePlan(plan)}
+                        className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors ${
+                          plan.active
+                            ? "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                            : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                        }`}
+                      >
+                        <Power className="w-3.5 h-3.5" />
+                        <span>{plan.active ? "Desativar" : "Reativar"}</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Renew / Hire Button */}
+                  <button
+                    onClick={() => handleRenew(plan.id)}
+                    disabled={isRenewing || (!plan.active && !isSaasOwner)}
+                    className={`w-full py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all shadow-lg flex items-center justify-center gap-2 ${
+                      isCurrent
+                        ? "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-orange-500/25 active:scale-95"
+                        : "bg-zinc-800 hover:bg-zinc-700 text-white"
+                    } disabled:opacity-50`}
+                  >
+                    {isRenewing ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Processando...</span>
+                      </>
+                    ) : isCurrent ? (
+                      <>
+                        <RefreshCw className="w-4 h-4" />
+                        <span>Renovar por +{plan.durationDays} Dias ({plan.formattedPrice})</span>
+                      </>
+                    ) : (
+                      <span>Contratar {plan.name}</span>
+                    )}
+                  </button>
+
+                  {/* Custom Plan Delete Button (SaaS Master only) */}
+                  {isSaasOwner && plan.isCustom && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeletePlan(plan)}
+                      className="w-full py-1 text-[11px] text-zinc-500 hover:text-red-400 flex items-center justify-center gap-1 transition-colors"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>Excluir Plano Personalizado</span>
+                    </button>
+                  )}
                 </div>
               </div>
-
-              <div className="space-y-3 text-xs mb-8">
-                {OFFICIAL_PLANS.MONTHLY.features.map((feat, idx) => (
-                  <div key={idx} className="flex items-start gap-2.5 text-zinc-300">
-                    <Check className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
-                    <span>{feat}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={() => handleRenew("MONTHLY")}
-              disabled={isRenewing}
-              className={`w-full py-3.5 rounded-2xl font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2 ${
-                subInfo.planId === "MONTHLY"
-                  ? "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-orange-500/25 active:scale-95"
-                  : "bg-zinc-800 hover:bg-zinc-700 text-white"
-              }`}
-            >
-              {isRenewing ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Processando...</span>
-                </>
-              ) : subInfo.planId === "MONTHLY" ? (
-                <>
-                  <RefreshCw className="w-4 h-4" />
-                  <span>Renovar por +30 Dias (R$ 280)</span>
-                </>
-              ) : (
-                <span>Mudar para o Plano Mensal</span>
-              )}
-            </button>
-          </div>
-
-          {/* Annual Plan (R$ 2.000 / 365 dias) */}
-          <div
-            className={`rounded-3xl p-6 sm:p-8 flex flex-col justify-between transition-all relative border-2 ${
-              subInfo.planId === "ANNUAL"
-                ? "bg-gradient-to-b from-orange-500/10 via-zinc-900 to-zinc-950 border-orange-500 shadow-2xl shadow-orange-950/30"
-                : "bg-zinc-900/60 border-zinc-800 hover:border-zinc-700"
-            }`}
-          >
-            <span className="absolute -top-3 right-6 px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow flex items-center gap-1">
-              <Flame className="w-3 h-3" />
-              <span>Economize R$ 1.360/ano</span>
-            </span>
-
-            {subInfo.planId === "ANNUAL" && (
-              <span className="absolute -top-3 left-6 px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500 text-white shadow">
-                Seu Plano Atual
-              </span>
-            )}
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-2xl font-black text-white">Plano Anual</h4>
-                <span className="text-xs font-bold text-orange-400 font-mono bg-orange-500/10 border border-orange-500/30 px-2.5 py-1 rounded-lg">
-                  365 dias
-                </span>
-              </div>
-
-              <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
-                Estabilidade operacional garantida o ano inteiro com custo equivalente a ~R$ 166/mês.
-              </p>
-
-              <div className="my-6 pb-6 border-b border-zinc-800">
-                <span className="text-4xl sm:text-5xl font-black text-white">R$ 2.000</span>
-                <span className="text-sm text-zinc-400 ml-1.5 font-medium">/ ano</span>
-                <div className="text-[11px] text-emerald-400 font-semibold mt-1 flex items-center gap-1">
-                  <TrendingUp className="w-3.5 h-3.5" />
-                  <span>Economia de R$ 1.360 comparado a 12 meses do plano avulso</span>
-                </div>
-              </div>
-
-              <div className="space-y-3 text-xs mb-8">
-                {OFFICIAL_PLANS.ANNUAL.features.map((feat, idx) => (
-                  <div key={idx} className="flex items-start gap-2.5 text-zinc-300">
-                    <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                    <span>{feat}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={() => handleRenew("ANNUAL")}
-              disabled={isRenewing}
-              className="w-full py-3.5 rounded-2xl font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-orange-500/25 active:scale-95"
-            >
-              {isRenewing ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Processando...</span>
-                </>
-              ) : subInfo.planId === "ANNUAL" ? (
-                <>
-                  <RefreshCw className="w-4 h-4" />
-                  <span>Renovar por +365 Dias (R$ 2.000)</span>
-                </>
-              ) : (
-                <span>Fazer Upgrade para o Anual (R$ 2.000)</span>
-              )}
-            </button>
-          </div>
+            );
+          })}
         </div>
       </div>
 
@@ -556,6 +730,176 @@ export default function BillingPage() {
           </table>
         </div>
       </div>
+
+      {/* ========================================================= */}
+      {/* MODAL: CRIAR / EDITAR PLANO OFICIAL (SAAS MASTER)         */}
+      {/* ========================================================= */}
+      {isPlanModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in-50">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 sm:p-8 space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/20 border border-orange-500/40 text-orange-400 flex items-center justify-center font-bold">
+                  <Crown className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-white">
+                    {editingPlan ? "Alterar Plano Oficial" : "Criar Novo Plano Oficial"}
+                  </h3>
+                  <p className="text-xs text-zinc-400">
+                    Configure os parâmetros comerciais e vigência para as oficinas
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsPlanModalOpen(false)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePlan} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-zinc-300 block mb-1">
+                  Nome do Plano *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Plano Trimestral Pro, Semestral, etc."
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-700 text-white text-sm focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-zinc-300 block mb-1">
+                    Preço (R$) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    step="1"
+                    value={formPrice}
+                    onChange={(e) => setFormPrice(Number(e.target.value))}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-700 text-white text-sm font-mono focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-zinc-300 block mb-1">
+                    Vigência (Dias) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    value={formDurationDays}
+                    onChange={(e) => setFormDurationDays(Number(e.target.value))}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-700 text-white text-sm font-mono focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-zinc-300 block mb-1">
+                    Rótulo Período
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: / mês, / ano"
+                    value={formPeriodLabel}
+                    onChange={(e) => setFormPeriodLabel(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-700 text-white text-sm focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-zinc-300 block mb-1">
+                  Badge de Destaque (Opcional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Mais Popular, Econômico, Lançamento"
+                  value={formBadge}
+                  onChange={(e) => setFormBadge(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-700 text-white text-sm focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-zinc-300 block mb-1">
+                  Descrição Curta *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Para oficinas que buscam máxima economia no longo prazo."
+                  value={formDescription}
+                  onChange={(e) => setFormDescription(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-700 text-white text-sm focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-zinc-300 block mb-1">
+                  Recursos & Benefícios (Um por linha)
+                </label>
+                <textarea
+                  rows={4}
+                  value={formFeaturesText}
+                  onChange={(e) => setFormFeaturesText(e.target.value)}
+                  placeholder="Ordens de Serviço ilimitadas&#10;Controle de estoque completo&#10;Impressão térmica 80mm"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-700 text-white text-xs leading-relaxed focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 pt-2 border-t border-zinc-800">
+                <label className="flex items-center gap-2 text-xs font-bold text-zinc-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formActive}
+                    onChange={(e) => setFormActive(e.target.checked)}
+                    className="w-4 h-4 rounded text-orange-500 bg-zinc-950 border-zinc-700 focus:ring-0"
+                  />
+                  <span>Plano Ativo (visível para contratação de oficinas)</span>
+                </label>
+
+                <label className="flex items-center gap-2 text-xs font-bold text-zinc-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formPopular}
+                    onChange={(e) => setFormPopular(e.target.checked)}
+                    className="w-4 h-4 rounded text-orange-500 bg-zinc-950 border-zinc-700 focus:ring-0"
+                  />
+                  <span>Destacar como Mais Popular</span>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setIsPlanModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-black shadow-lg shadow-orange-500/25 active:scale-95 transition-all"
+                >
+                  {editingPlan ? "Salvar Alterações" : "Criar Plano"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

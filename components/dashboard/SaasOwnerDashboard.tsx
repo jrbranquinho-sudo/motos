@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Building2,
   TrendingUp,
@@ -23,6 +24,7 @@ import {
   Mail,
   Phone,
   UserCheck,
+  CreditCard,
   Sparkles,
   AlertOctagon,
   AlertTriangle,
@@ -67,6 +69,7 @@ export function SaasOwnerDashboard() {
     toggleTenantStatus,
     updateUser,
     liberateTrial,
+    plans,
   } = useMotoShop();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPlanFilter, setSelectedPlanFilter] = useState<string>("ALL");
@@ -342,6 +345,15 @@ export function SaasOwnerDashboard() {
             <Plus className="w-4 h-4 stroke-[3]" />
             <span>Cadastrar Nova Oficina</span>
           </button>
+
+          <Link
+            href="/settings/billing#planos"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-orange-950/40 hover:bg-orange-900/50 border border-orange-500/40 text-orange-200 font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95"
+            title="Gerenciar, criar, alterar e desativar/reativar planos oficiais"
+          >
+            <CreditCard className="w-4 h-4 text-orange-400" />
+            <span>Nossos Planos Oficiais ({plans.length})</span>
+          </Link>
 
           <div className="px-3 py-2 rounded-xl bg-zinc-950/80 border border-zinc-800 text-right hidden sm:block">
             <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider block">

@@ -26,6 +26,7 @@ import {
   SEED_USERS,
   SEED_VEHICLES,
 } from "./seedData";
+import { PlanConfig, INITIAL_OFFICIAL_PLANS } from "./subscription";
 
 interface MotoShopContextType {
   isLoaded: boolean;
@@ -51,9 +52,17 @@ interface MotoShopContextType {
     shopName: string;
     workshopType: WorkshopType;
   }) => { tenant: Tenant; user: User };
-  liberateTrial: (tenantId: string, plan?: "MONTHLY" | "ANNUAL") => void;
-  renewSubscription: (tenantId: string, plan: "MONTHLY" | "ANNUAL") => void;
+  liberateTrial: (tenantId: string, plan?: string) => void;
+  renewSubscription: (tenantId: string, plan: string) => void;
   simulateSubscriptionDays: (tenantId: string, daysRemaining: number) => void;
+
+  // Official SaaS Plans Management
+  plans: PlanConfig[];
+  addPlan: (data: Omit<PlanConfig, "id"> & { id?: string }) => PlanConfig;
+  updatePlan: (id: string, updates: Partial<PlanConfig>) => void;
+  togglePlanStatus: (id: string) => void;
+  deletePlan: (id: string) => void;
+
   currentUser: User;
   users: User[];
   setCurrentUser: (user: User) => void;
@@ -158,6 +167,7 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [services, setServices] = useState<ServiceCatalogItem[]>(SEED_SERVICES);
   const [financialRecords, setFinancialRecords] = useState<FinancialRecord[]>(SEED_FINANCIAL_RECORDS);
+  const [plans, setPlans] = useState<PlanConfig[]>(INITIAL_OFFICIAL_PLANS);
 
   // Load from LocalStorage
   useEffect(() => {
@@ -175,6 +185,9 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
 
       if (saved) {
         const parsed = JSON.parse(saved);
+        if (parsed.plans && Array.isArray(parsed.plans) && parsed.plans.length > 0) {
+          setPlans(parsed.plans);
+        }
         if (parsed.tenants) setTenants(parsed.tenants);
         if (parsed.currentTenantId) {
           const foundTenant = (parsed.tenants || SEED_TENANTS).find(
@@ -262,6 +275,7 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
         stockMovements,
         services,
         financialRecords,
+        plans,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (e) {
@@ -282,6 +296,7 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
     stockMovements,
     services,
     financialRecords,
+    plans,
   ]);
 
   const login = (user: User) => {
@@ -494,15 +509,16 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
     return { tenant: newTenant, user: newOwner };
   };
 
-  const liberateTrial = (tenantId: string, targetPlan: "MONTHLY" | "ANNUAL" = "MONTHLY") => {
+  const liberateTrial = (tenantId: string, targetPlan: string = "MONTHLY") => {
+    const foundPlan = plans.find((p) => p.id === targetPlan) || INITIAL_OFFICIAL_PLANS.find((p) => p.id === targetPlan);
     const isAnnual = targetPlan === "ANNUAL";
-    const durationDays = isAnnual ? 365 : 30;
-    const price = isAnnual ? 2000 : 280;
+    const durationDays = foundPlan ? foundPlan.durationDays : isAnnual ? 365 : 30;
+    const price = foundPlan ? foundPlan.price : isAnnual ? 2000 : 280;
     const now = new Date();
     const expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
 
     const updateData: Partial<Tenant> = {
-      plan: targetPlan,
+      plan: targetPlan as any,
       subscriptionCycle: targetPlan,
       subscriptionPrice: price,
       subscriptionDurationDays: durationDays,
@@ -550,10 +566,11 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
     setFinancialRecords((prev) => prev.filter((f) => f.id !== id));
   };
 
-  const renewSubscription = (tenantId: string, plan: "MONTHLY" | "ANNUAL") => {
+  const renewSubscription = (tenantId: string, plan: string) => {
+    const foundPlan = plans.find((p) => p.id === plan) || INITIAL_OFFICIAL_PLANS.find((p) => p.id === plan);
     const isAnnual = plan === "ANNUAL";
-    const durationDays = isAnnual ? 365 : 30;
-    const price = isAnnual ? 2000 : 280;
+    const durationDays = foundPlan ? foundPlan.durationDays : isAnnual ? 365 : 30;
+    const price = foundPlan ? foundPlan.price : isAnnual ? 2000 : 280;
     const now = new Date();
     const expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
 
@@ -562,7 +579,7 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
         if (t.id === tenantId) {
           return {
             ...t,
-            plan,
+            plan: plan as any,
             subscriptionCycle: plan,
             subscriptionPrice: price,
             subscriptionDurationDays: durationDays,
@@ -570,6 +587,7 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
             subscriptionExpiresAt: expiresAt,
             subscriptionStatus: "ACTIVE",
             status: "ACTIVE",
+            isTrial: false,
           };
         }
         return t;
@@ -580,7 +598,7 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
       if (prev.id === tenantId) {
         return {
           ...prev,
-          plan,
+          plan: plan as any,
           subscriptionCycle: plan,
           subscriptionPrice: price,
           subscriptionDurationDays: durationDays,
@@ -588,10 +606,50 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
           subscriptionExpiresAt: expiresAt,
           subscriptionStatus: "ACTIVE",
           status: "ACTIVE",
+          isTrial: false,
         };
       }
       return prev;
     });
+  };
+
+  const addPlan = (data: Omit<PlanConfig, "id"> & { id?: string }) => {
+    const id = data.id || `PLAN_${Date.now()}`;
+    const newPlan: PlanConfig = {
+      ...data,
+      id,
+      formattedPrice: data.formattedPrice || `R$ ${data.price.toLocaleString("pt-BR")}`,
+      active: data.active ?? true,
+      isCustom: true,
+      createdAt: new Date().toISOString(),
+    };
+    setPlans((prev) => [...prev, newPlan]);
+    return newPlan;
+  };
+
+  const updatePlan = (id: string, updates: Partial<PlanConfig>) => {
+    setPlans((prev) =>
+      prev.map((p) => {
+        if (p.id === id) {
+          const updated = { ...p, ...updates };
+          if (updates.price !== undefined && !updates.formattedPrice) {
+            updated.formattedPrice = `R$ ${updates.price.toLocaleString("pt-BR")}`;
+          }
+          return updated;
+        }
+        return p;
+      })
+    );
+  };
+
+  const togglePlanStatus = (id: string) => {
+    setPlans((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, active: !p.active } : p))
+    );
+  };
+
+  const deletePlan = (id: string) => {
+    setPlans((prev) => prev.filter((p) => p.id !== id));
   };
 
   const simulateSubscriptionDays = (tenantId: string, daysRemaining: number) => {
@@ -990,6 +1048,11 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
         liberateTrial,
         renewSubscription,
         simulateSubscriptionDays,
+        plans,
+        addPlan,
+        updatePlan,
+        togglePlanStatus,
+        deletePlan,
         currentUser,
         users,
         setCurrentUser,

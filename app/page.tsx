@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { useMotoShop } from "@/lib/store";
 import { WorkshopType } from "@/lib/types";
+import { MotOsLogo } from "@/components/common/MotOsLogo";
 
 export default function LandingPage() {
   const { tenant, isAuthenticated, isLoaded, registerTrialDemo } = useMotoShop();
@@ -185,9 +186,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-40 bg-[#090d16]/90 backdrop-blur-md border-b border-zinc-800/80 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/25">
-              <Wrench className="w-5 h-5" />
-            </div>
+            <MotOsLogo size={42} />
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-black text-2xl text-white tracking-tight">Mot-OS</span>
@@ -788,7 +787,7 @@ export default function LandingPage() {
       <footer className="border-t border-zinc-800/80 py-10 px-6 text-center text-xs text-zinc-500">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Wrench className="w-4 h-4 text-blue-500" />
+            <MotOsLogo size={20} />
             <span className="font-bold text-zinc-300">Mot-OS</span>
             <span>— Gestão Especializada para Oficinas de Motos, Carros, Caminhões e Náutica</span>
           </div>

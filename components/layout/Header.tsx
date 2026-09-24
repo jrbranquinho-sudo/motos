@@ -19,12 +19,14 @@ import {
 } from "lucide-react";
 import { useMotoShop } from "@/lib/store";
 import { formatPlate } from "@/lib/utils";
+import { MotOsLogo } from "@/components/common/MotOsLogo";
 
 export function Header() {
   const router = useRouter();
   const { tenant, lowStockParts, vehicles, metrics, currentUser } = useMotoShop();
   const [searchPlate, setSearchPlate] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const isMechanic = currentUser.role === "MECHANIC";
   const isSaasOwner = currentUser.role === "SUPER_ADMIN";
@@ -54,19 +56,18 @@ export function Header() {
     : null;
 
   return (
-    <header className="sticky top-0 z-40 bg-[#0d111a]/90 backdrop-blur-md border-b border-slate-800/80 px-4 py-2.5 flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-40 bg-[#0d111a]/90 backdrop-blur-md border-b border-slate-800/80 px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2 sm:gap-4">
       {/* Mobile Menu & Brand */}
-      <div className="flex items-center gap-3 lg:hidden">
+      <div className="flex items-center gap-2.5 lg:hidden">
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white"
+          aria-label="Abrir menu"
         >
           {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
-        <Link href="/dashboard" className="flex items-center gap-1.5 font-bold text-white">
-          <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white">
-            <Wrench className="w-4 h-4" />
-          </div>
+        <Link href="/dashboard" className="flex items-center gap-2 font-bold text-white">
+          <MotOsLogo size={28} />
           <span className="font-black text-lg tracking-tight">Mot-OS</span>
         </Link>
       </div>
