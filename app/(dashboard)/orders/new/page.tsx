@@ -20,7 +20,7 @@ import {
 import { useMotoShop } from "@/lib/store";
 import { ChecklistItem, ItemType, OSItem } from "@/lib/types";
 import { formatCurrency, formatPlate } from "@/lib/utils";
-import { getBrandsByCategory, getModelsByBrand, VehicleCategory } from "@/lib/vehicleCatalog";
+import { getBrandsByWorkshopType, getModelsByBrand, VehicleCategory } from "@/lib/vehicleCatalog";
 
 function NewOrderForm() {
   const router = useRouter();
@@ -33,6 +33,7 @@ function NewOrderForm() {
     customers,
     users,
     parts,
+    services,
     currentUser,
     isMechanic,
     addServiceOrder,
@@ -57,8 +58,8 @@ function NewOrderForm() {
   // Checklist
   const [checklist, setChecklist] = useState<ChecklistItem[]>([
     { id: "c1", label: "Nível de combustível conferido", checked: true },
-    { id: "c2", label: "Avarias/riscos na carenagem inspecionados", checked: true },
-    { id: "c3", label: "Espelhos retrovisores íntegros", checked: true },
+    { id: "c2", label: "Avarias/riscos na lataria ou carenagem inspecionados", checked: true },
+    { id: "c3", label: "Espelhos e iluminação íntegros", checked: true },
     { id: "c4", label: "Bateria e sistema elétrico testados", checked: true },
   ]);
 
@@ -70,15 +71,25 @@ function NewOrderForm() {
   // Item builder states
   const [itemType, setItemType] = useState<ItemType>("PART");
   const [selectedPartId, setSelectedPartId] = useState("");
+  const [selectedServiceId, setSelectedServiceId] = useState("");
   const [customDescription, setCustomDescription] = useState("");
   const [itemQty, setItemQty] = useState(1);
   const [itemPrice, setItemPrice] = useState(0);
   const [itemDiscount, setItemDiscount] = useState(0);
 
   // New vehicle inline form states with dynamic catalog
-  const [newCategory, setNewCategory] = useState<VehicleCategory>("MOTO");
+  const getDefaultCat = (): VehicleCategory => {
+    const norm = String(tenant.workshopType || "").toUpperCase();
+    if (norm === "CARROS" || norm === "CARRO") return "CARRO";
+    if (norm === "CAMINHOES" || norm === "CAMINHAO") return "CAMINHAO";
+    if (norm === "NAUTICA") return "NAUTICA";
+    return "MOTO";
+  };
+
+  const [newCategory, setNewCategory] = useState<VehicleCategory>(getDefaultCat);
   const [newPlate, setNewPlate] = useState("");
-  const [newBrand, setNewBrand] = useState("HONDA");
+  const availableBrands = getBrandsByWorkshopType(newCategory);
+  const [newBrand, setNewBrand] = useState(availableBrands[0] || "HONDA");
   const [newModel, setNewModel] = useState("");
   const [isCustomModel, setIsCustomModel] = useState(false);
   const [customModelText, setCustomModelText] = useState("");
@@ -87,14 +98,13 @@ function NewOrderForm() {
   const [newCustomerName, setNewCustomerName] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
 
-  const availableBrands = getBrandsByCategory(newCategory);
-  const availableModels = getModelsByBrand(newBrand);
+  const availableModels = getModelsByBrand(newBrand, newCategory);
 
   useEffect(() => {
     if (availableBrands.length > 0 && !availableBrands.includes(newBrand)) {
       setNewBrand(availableBrands[0]);
     }
-  }, [newCategory]);
+  }, [newCategory, availableBrands]);
 
   useEffect(() => {
     if (availableModels.length > 0) {
@@ -104,7 +114,7 @@ function NewOrderForm() {
       setNewModel("__CUSTOM__");
       setIsCustomModel(true);
     }
-  }, [newBrand]);
+  }, [newBrand, availableModels]);
 
   // Update KM when vehicle changes
   useEffect(() => {
@@ -497,7 +507,7 @@ function NewOrderForm() {
                 <select
                   value={selectedPartId}
                   onChange={(e) => handlePartSelect(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none"
+                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-blue-500 focus:outline-none"
                 >
                   <option value="">Selecione uma peça...</option>
                   {parts
@@ -510,17 +520,45 @@ function NewOrderForm() {
                 </select>
               </div>
             ) : (
-              <div>
-                <label className="text-xs text-zinc-400 mb-1 block">
-                  Descrição do Serviço:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex: Mão de obra para revisão de freios e sangria..."
-                  value={customDescription}
-                  onChange={(e) => setCustomDescription(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none"
-                />
+              <div className="space-y-2">
+                <div>
+                  <label className="text-xs text-zinc-400 mb-1 block">
+                    Selecionar do Catálogo de Serviços:
+                  </label>
+                  <select
+                    value={selectedServiceId}
+                    onChange={(e) => {
+                      setSelectedServiceId(e.target.value);
+                      const s = services.find((srv) => srv.id === e.target.value);
+                      if (s) {
+                        setCustomDescription(s.name);
+                        setItemPrice(s.price);
+                      }
+                    }}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="">Selecione um serviço ou digite abaixo...</option>
+                    {services
+                      .filter((s) => s.tenantId === tenant.id)
+                      .map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} ({s.department}) — {formatCurrency(s.price)} (~{s.estimatedHours}h)
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-zinc-400 mb-1 block">
+                    Descrição do Serviço:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Mão de obra para revisão de freios e sangria..."
+                    value={customDescription}
+                    onChange={(e) => setCustomDescription(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
               </div>
             )}
 

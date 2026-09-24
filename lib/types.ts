@@ -1,5 +1,6 @@
 export type Role = 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'MECHANIC' | 'RECEPTIONIST';
-export type Plan = 'MONTHLY' | 'ANNUAL' | 'FREE' | 'STARTER' | 'PRO' | 'ENTERPRISE';
+export type Plan = 'MONTHLY' | 'ANNUAL' | 'FREE' | 'STARTER' | 'PRO' | 'ENTERPRISE' | 'TRIAL';
+export type WorkshopType = 'MOTOS' | 'CARROS' | 'CAMINHOES' | 'NAUTICA' | 'GERAL';
 
 export type OSStatus = 
   | 'OPEN'               // Aberta
@@ -18,6 +19,7 @@ export interface Tenant {
   name: string;
   slug: string;
   plan: Plan;
+  workshopType?: WorkshopType;
   phone?: string;
   email?: string;
   cnpj?: string;
@@ -33,12 +35,13 @@ export interface Tenant {
   status?: 'ACTIVE' | 'PENDING' | 'SUSPENDED';
 
   // Subscription lifecycle
-  subscriptionCycle?: 'MONTHLY' | 'ANNUAL';
+  subscriptionCycle?: 'MONTHLY' | 'ANNUAL' | 'TRIAL';
   subscriptionPrice?: number;
-  subscriptionDurationDays?: number; // 30 or 365
+  subscriptionDurationDays?: number; // 7, 30 or 365
   subscriptionStartedAt?: string;
   subscriptionExpiresAt?: string;
-  subscriptionStatus?: 'ACTIVE' | 'WARNING' | 'EXPIRED';
+  subscriptionStatus?: 'ACTIVE' | 'WARNING' | 'EXPIRED' | 'TRIAL';
+  isTrial?: boolean;
 }
 
 export interface User {
@@ -53,6 +56,32 @@ export interface User {
   avatar?: string;
   mustChangePassword?: boolean;
   twoFactorEnabled?: boolean;
+  commissionRate?: number; // % comissão sobre mão de obra (ex: 8.0)
+  specialty?: string;     // especialidade do mecânico (ex: Elétrica e injeção, Motor e câmbio)
+  status?: 'ACTIVE' | 'INACTIVE';
+}
+
+export interface ServiceCatalogItem {
+  id: string;
+  name: string;
+  department: string;
+  description?: string;
+  price: number;
+  estimatedHours: number;
+  tenantId: string;
+  createdAt: string;
+}
+
+export interface FinancialRecord {
+  id: string;
+  type: 'RECEITA' | 'DESPESA';
+  description: string;
+  amount: number;
+  date: string;
+  category: string;
+  referenceOsId?: string;
+  tenantId: string;
+  createdAt: string;
 }
 
 

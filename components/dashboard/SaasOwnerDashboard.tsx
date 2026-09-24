@@ -29,10 +29,18 @@ import {
   Edit3,
   Power,
   Trash2,
+  Bike,
+  Car,
+  Truck,
+  Ship,
+  Wrench,
+  Smartphone,
+  MessageSquare,
+  Send,
 } from "lucide-react";
 import { useMotoShop } from "@/lib/store";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { Plan, Tenant } from "@/lib/types";
+import { Plan, Tenant, WorkshopType } from "@/lib/types";
 import { getSubscriptionInfo, OFFICIAL_PLANS } from "@/lib/subscription";
 import { CpfCnpjInput } from "@/components/common/CpfCnpjInput";
 
@@ -43,6 +51,7 @@ const PLAN_PRICES: Record<string, number> = {
   STARTER: 79,
   PRO: 149,
   ENTERPRISE: 399,
+  TRIAL: 0,
 };
 
 export function SaasOwnerDashboard() {
@@ -57,6 +66,7 @@ export function SaasOwnerDashboard() {
     deleteTenant,
     toggleTenantStatus,
     updateUser,
+    liberateTrial,
   } = useMotoShop();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPlanFilter, setSelectedPlanFilter] = useState<string>("ALL");
@@ -81,6 +91,7 @@ export function SaasOwnerDashboard() {
   const [shopPhone, setShopPhone] = useState("");
   const [address, setAddress] = useState("");
   const [plan, setPlan] = useState<Plan>("MONTHLY");
+  const [addWorkshopType, setAddWorkshopType] = useState<WorkshopType>("MOTOS");
 
   // Workshop Owner states
   const [ownerName, setOwnerName] = useState("");
@@ -98,6 +109,11 @@ export function SaasOwnerDashboard() {
   const [editEmail, setEditEmail] = useState("");
   const [editAddress, setEditAddress] = useState("");
   const [editPlan, setEditPlan] = useState<Plan>("MONTHLY");
+  const [editWorkshopType, setEditWorkshopType] = useState<WorkshopType>("MOTOS");
+
+  // Liberate Trial Modal States
+  const [liberateModalTenant, setLiberateModalTenant] = useState<Tenant | null>(null);
+  const [liberateSelectedPlan, setLiberateSelectedPlan] = useState<"MONTHLY" | "ANNUAL">("MONTHLY");
 
   // Workshop Owner credentials edit
   const [editOwnerId, setEditOwnerId] = useState("");
@@ -139,6 +155,7 @@ export function SaasOwnerDashboard() {
     setEditEmail(t.email || "");
     setEditAddress(t.address || "");
     setEditPlan(t.plan);
+    setEditWorkshopType(t.workshopType || "MOTOS");
 
     const owner = users.find((u) => u.tenantId === t.id && u.role === "ADMIN");
     setEditOwnerId(owner?.id || "");
@@ -161,6 +178,7 @@ export function SaasOwnerDashboard() {
       email: editEmail.trim() || undefined,
       address: editAddress.trim() || undefined,
       plan: editPlan,
+      workshopType: editWorkshopType,
     });
 
     if (editOwnerId) {
@@ -174,6 +192,18 @@ export function SaasOwnerDashboard() {
 
     setFeedbackMsg(`Oficina "${editName}" e credenciais atualizadas com sucesso!`);
     setIsEditModalOpen(false);
+  };
+
+  const handleLiberateTrial = (tenantId: string, targetPlan: "MONTHLY" | "ANNUAL" = "MONTHLY") => {
+    liberateTrial(tenantId, targetPlan);
+    const targetTenant = tenants.find((t) => t.id === tenantId);
+    setFeedbackMsg(
+      `Sistema liberado com sucesso para a oficina "${targetTenant?.name || ""}" no Plano ${
+        targetPlan === "ANNUAL" ? "Anual (365 dias)" : "Mensal (30 dias)"
+      }!`
+    );
+    setLiberateModalTenant(null);
+    setTimeout(() => setFeedbackMsg(""), 6000);
   };
 
   const handleOpenMasterProfile = () => {
@@ -209,6 +239,11 @@ export function SaasOwnerDashboard() {
   const totalPlatformVolume = tenants.reduce((acc, t) => acc + (t.totalRevenue || 0), 0);
   const totalPlatformOrders = tenants.reduce((acc, t) => acc + (t.ordersCount || 0), 0);
 
+  // List of workshops currently in trial (7 days test drive)
+  const trialTenantsList = tenants.filter(
+    (t) => t.isTrial || t.plan === "TRIAL" || t.subscriptionCycle === "TRIAL"
+  );
+
   const filteredTenants = tenants.filter((t) => {
     const matchesSearch =
       !searchTerm ||
@@ -237,6 +272,7 @@ export function SaasOwnerDashboard() {
         name: shopName.trim(),
         slug: finalSlug,
         plan,
+        workshopType: addWorkshopType,
         cnpj: cnpj || undefined,
         phone: shopPhone || undefined,
         address: address || undefined,
@@ -395,6 +431,193 @@ export function SaasOwnerDashboard() {
             Receita mensal bruta de planos
           </p>
         </div>
+      </div>
+
+      {/* SEÇÃO PRINCIPAL DE OFICINAS EM TRIAL / TESTE */}
+      <div id="trials" className="p-6 rounded-2xl bg-gradient-to-b from-blue-950/40 via-zinc-900/90 to-zinc-900 border border-blue-500/40 shadow-2xl space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-400 shadow-md">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold text-white">
+                  Oficinas em Período de Teste (Trial de 7 Dias)
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/40">
+                  {trialTenantsList.length} oficina(s) em teste
+                </span>
+              </div>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Acompanhe as oficinas em degustação de 1 semana, quanto tempo falta para vencer e envie mensagens via WhatsApp (zap) para fechar a contratação.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {trialTenantsList.length === 0 ? (
+          <div className="p-8 text-center rounded-xl bg-zinc-950/60 border border-zinc-800/80 space-y-2">
+            <CheckCircle2 className="w-8 h-8 text-zinc-600 mx-auto" />
+            <p className="text-sm font-semibold text-zinc-400">
+              Nenhuma oficina em período de testes no momento.
+            </p>
+            <p className="text-xs text-zinc-500">
+              Novas solicitações de demonstração realizadas pela página inicial do Mot-OS aparecerão aqui em tempo real.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {trialTenantsList.map((t) => {
+              const subInfo = getSubscriptionInfo(t);
+              const owner = users.find((u) => u.tenantId === t.id && u.role === "ADMIN");
+              const phoneRaw = t.phone || owner?.phone || "";
+              const cleanZap = phoneRaw.replace(/\D/g, "");
+              const zapText = encodeURIComponent(
+                `Olá ${owner?.name || t.name}, tudo bem? Sou o administrador do Mot-OS. Vi que você está testando o sistema na oficina ${t.name} (${
+                  subInfo.isExpired ? "seu período de 7 dias expirou" : `faltam ${subInfo.daysRemaining} dias para vencer`
+                }). Como está sendo a sua experiência? Gostaria de tirar alguma dúvida ou já podemos liberar a sua assinatura definitiva?`
+              );
+              const zapUrl = cleanZap ? `https://wa.me/55${cleanZap}?text=${zapText}` : null;
+
+              const segmentMeta = {
+                MOTOS: { label: "Motos", icon: Bike, color: "text-blue-400 bg-blue-500/10 border-blue-500/30" },
+                CARROS: { label: "Carros", icon: Car, color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/30" },
+                CAMINHOES: { label: "Caminhões", icon: Truck, color: "text-amber-400 bg-amber-500/10 border-amber-500/30" },
+                NAUTICA: { label: "Náutica", icon: Ship, color: "text-cyan-400 bg-cyan-500/10 border-cyan-500/30" },
+                GERAL: { label: "Multimarcas", icon: Wrench, color: "text-zinc-300 bg-zinc-800 border-zinc-700" },
+              }[t.workshopType || "MOTOS"];
+
+              const SegmentIcon = segmentMeta.icon;
+
+              return (
+                <div
+                  key={t.id}
+                  className={`p-5 rounded-2xl border transition-all space-y-4 flex flex-col justify-between ${
+                    subInfo.isExpired
+                      ? "bg-red-950/20 border-red-500/40 shadow-lg shadow-red-950/20"
+                      : "bg-zinc-950/80 border-blue-500/30 hover:border-blue-500/60 shadow-lg"
+                  }`}
+                >
+                  <div className="space-y-3">
+                    {/* Top: Workshop Name & Segment */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h4 className="font-bold text-base text-white">{t.name}</h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${segmentMeta.color}`}>
+                            <SegmentIcon className="w-3 h-3" />
+                            <span>{segmentMeta.label}</span>
+                          </span>
+                          <span className="text-[10px] text-zinc-500 font-mono">
+                            ID: {t.slug}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Expired / Active badge */}
+                      <span
+                        className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 ${
+                          subInfo.isExpired
+                            ? "bg-red-500/20 text-red-400 border border-red-500/40"
+                            : "bg-blue-500/20 text-blue-300 border border-blue-500/40"
+                        }`}
+                      >
+                        {subInfo.isExpired ? "Expirado • Bloqueado" : "Teste Ativo"}
+                      </span>
+                    </div>
+
+                    {/* Owner & Phone info */}
+                    <div className="p-3 bg-zinc-900/90 rounded-xl border border-zinc-800 text-xs space-y-1.5">
+                      <div className="flex items-center justify-between text-zinc-400">
+                        <span>Responsável:</span>
+                        <strong className="text-zinc-200">{owner?.name || t.lastAccessUser || "Não cadastrado"}</strong>
+                      </div>
+                      <div className="flex items-center justify-between text-zinc-400">
+                        <span>E-mail:</span>
+                        <span className="text-zinc-300 font-mono text-[11px] truncate max-w-[170px]">{owner?.email || t.email || "—"}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-zinc-400 pt-1 border-t border-zinc-800/80">
+                        <span className="font-bold text-emerald-400 flex items-center gap-1">
+                          <Smartphone className="w-3.5 h-3.5" /> Zap:
+                        </span>
+                        <strong className="text-white font-mono">{phoneRaw || "Não informado"}</strong>
+                      </div>
+                    </div>
+
+                    {/* Countdown / Time left */}
+                    <div className={`p-3 rounded-xl border text-xs ${
+                      subInfo.isExpired
+                        ? "bg-red-950/40 border-red-500/30 text-red-200"
+                        : "bg-blue-950/40 border-blue-500/30 text-blue-200"
+                    }`}>
+                      <div className="flex items-center justify-between font-bold mb-1">
+                        <span className="flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>{subInfo.isExpired ? "Status do Prazo:" : "Tempo Restante p/ Vencer:"}</span>
+                        </span>
+                        <span className="font-mono text-xs font-black">
+                          {subInfo.isExpired ? "VENCIDO (0 dias)" : `${subInfo.daysRemaining}d ${subInfo.hoursRemaining}h ${subInfo.minutesRemaining}m`}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400">
+                        {subInfo.isExpired
+                          ? "O prazo de 7 dias encerrou. O acesso da oficina está pausado aguardando contratação."
+                          : `Período gratuito de 7 dias encerra em ${formatDate(subInfo.expiresAt.toISOString())}.`}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Actions: Zap button & Liberar Sistema button */}
+                  <div className="space-y-2 pt-2 border-t border-zinc-800">
+                    <div className="grid grid-cols-2 gap-2">
+                      {zapUrl ? (
+                        <a
+                          href={zapUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-950/30 transition-all active:scale-95"
+                          title="Abrir WhatsApp direto para conversar com a oficina"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>Enviar Zap</span>
+                        </a>
+                      ) : (
+                        <button
+                          disabled
+                          className="py-2.5 px-3 rounded-xl bg-zinc-800 text-zinc-500 text-xs font-bold cursor-not-allowed text-center"
+                        >
+                          Sem Zap
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLiberateModalTenant(t);
+                          setLiberateSelectedPlan("MONTHLY");
+                        }}
+                        className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-blue-950/40 transition-all active:scale-95"
+                        title="Liberar o sistema definitivamente para esta oficina"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Liberar Sistema</span>
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setTenant(t)}
+                      className="w-full py-1.5 rounded-lg text-[11px] font-semibold text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors text-center"
+                    >
+                      Inspecionar Oficina Como Admin
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Filter and Search Bar */}
@@ -706,6 +929,23 @@ export function SaasOwnerDashboard() {
                     </select>
                   </div>
 
+                  <div>
+                    <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                      Segmento de Atendimento *
+                    </label>
+                    <select
+                      value={addWorkshopType}
+                      onChange={(e) => setAddWorkshopType(e.target.value as WorkshopType)}
+                      className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-orange-500 focus:outline-none"
+                    >
+                      <option value="MOTOS">🏍️ Motos</option>
+                      <option value="CARROS">🚗 Carros / Auto Center</option>
+                      <option value="CAMINHOES">🚛 Caminhões / Frotas Pesadas</option>
+                      <option value="NAUTICA">🚤 Náutica / Motores de Popa</option>
+                      <option value="GERAL">🔧 Geral / Multimarcas</option>
+                    </select>
+                  </div>
+
                   <div className="sm:col-span-2">
                     <label className="text-xs text-zinc-300 font-semibold block mb-1">
                       Endereço Comercial da Oficina
@@ -899,6 +1139,23 @@ export function SaasOwnerDashboard() {
                     <option value="STARTER">Plano Starter (R$ 79/mês)</option>
                     <option value="PRO">Plano Pro (R$ 149/mês)</option>
                     <option value="ENTERPRISE">Plano Enterprise (R$ 399/mês)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-zinc-300 font-semibold block mb-1">
+                    Segmento de Atendimento *
+                  </label>
+                  <select
+                    value={editWorkshopType}
+                    onChange={(e) => setEditWorkshopType(e.target.value as WorkshopType)}
+                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-2.5 text-sm text-zinc-100 focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="MOTOS">🏍️ Motos</option>
+                    <option value="CARROS">🚗 Carros / Auto Center</option>
+                    <option value="CAMINHOES">🚛 Caminhões / Frotas Pesadas</option>
+                    <option value="NAUTICA">🚤 Náutica / Motores de Popa</option>
+                    <option value="GERAL">🔧 Geral / Multimarcas</option>
                   </select>
                 </div>
 
@@ -1158,6 +1415,92 @@ export function SaasOwnerDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Liberação do Sistema para Oficina em Trial */}
+      {liberateModalTenant && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-blue-500/50 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-6">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Liberar Acesso Definitivo</h3>
+                  <p className="text-xs text-zinc-400">Oficina: {liberateModalTenant.name}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setLiberateModalTenant(null)}
+                className="text-zinc-500 hover:text-white p-1 rounded-lg hover:bg-zinc-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <p className="text-zinc-300">
+                Selecione o plano acordado com o cliente para retirar a restrição de teste e liberar o sistema:
+              </p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setLiberateSelectedPlan("MONTHLY")}
+                  className={`p-4 rounded-2xl border text-left transition-all ${
+                    liberateSelectedPlan === "MONTHLY"
+                      ? "bg-blue-600/20 border-blue-500 ring-2 ring-blue-500/30"
+                      : "bg-zinc-950 border-zinc-800 hover:border-zinc-700"
+                  }`}
+                >
+                  <strong className="block text-sm text-white font-bold mb-1">Plano Mensal</strong>
+                  <span className="text-lg font-black text-blue-400">R$ 280</span>
+                  <span className="text-zinc-400"> / 30 dias</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setLiberateSelectedPlan("ANNUAL")}
+                  className={`p-4 rounded-2xl border text-left transition-all relative ${
+                    liberateSelectedPlan === "ANNUAL"
+                      ? "bg-blue-600/20 border-blue-500 ring-2 ring-blue-500/30"
+                      : "bg-zinc-950 border-zinc-800 hover:border-zinc-700"
+                  }`}
+                >
+                  <span className="absolute -top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-blue-500 text-white">
+                    Anual
+                  </span>
+                  <strong className="block text-sm text-white font-bold mb-1">Plano Anual</strong>
+                  <span className="text-lg font-black text-blue-400">R$ 2.000</span>
+                  <span className="text-zinc-400"> / 365 dias</span>
+                </button>
+              </div>
+
+              <div className="p-3 bg-zinc-950 rounded-xl border border-zinc-800 text-[11px] text-zinc-400">
+                Ao clicar em "Confirmar Liberação", a oficina sairá do modo TRIAL, o contador de validade será atualizado com o novo período e o sistema estará liberado imediatamente para o proprietário e toda a sua equipe.
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-800">
+              <button
+                type="button"
+                onClick={() => setLiberateModalTenant(null)}
+                className="px-4 py-2.5 rounded-xl text-xs font-semibold text-zinc-400 hover:text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleLiberateTrial(liberateModalTenant.id, liberateSelectedPlan)}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-blue-500/25 transition-all"
+              >
+                Confirmar Liberação do Sistema
+              </button>
+            </div>
           </div>
         </div>
       )}

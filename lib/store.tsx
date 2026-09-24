@@ -3,19 +3,24 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import {
   Customer,
+  FinancialRecord,
   MaintenanceRecord,
   OSStatus,
   Part,
+  ServiceCatalogItem,
   ServiceOrder,
   StockMovement,
   Tenant,
   User,
   Vehicle,
+  WorkshopType,
 } from "./types";
 import {
   SEED_CUSTOMERS,
+  SEED_FINANCIAL_RECORDS,
   SEED_MAINTENANCE_RECORDS,
   SEED_PARTS,
+  SEED_SERVICES,
   SEED_SERVICE_ORDERS,
   SEED_TENANTS,
   SEED_USERS,
@@ -29,6 +34,7 @@ interface MotoShopContextType {
   logout: () => void;
   tenant: Tenant;
   tenants: Tenant[];
+  trialTenants: Tenant[];
   setTenant: (tenant: Tenant) => void;
   updateTenant: (id: string, data: Partial<Tenant>) => void;
   deleteTenant: (id: string) => void;
@@ -37,6 +43,15 @@ interface MotoShopContextType {
     tenantData: Omit<Tenant, "id" | "createdAt">,
     ownerData: { name: string; email: string; username?: string; phone?: string }
   ) => { tenant: Tenant; owner: User };
+  registerTrialDemo: (data: {
+    ownerName: string;
+    email: string;
+    password?: string;
+    phone: string;
+    shopName: string;
+    workshopType: WorkshopType;
+  }) => { tenant: Tenant; user: User };
+  liberateTrial: (tenantId: string, plan?: "MONTHLY" | "ANNUAL") => void;
   renewSubscription: (tenantId: string, plan: "MONTHLY" | "ANNUAL") => void;
   simulateSubscriptionDays: (tenantId: string, daysRemaining: number) => void;
   currentUser: User;
@@ -88,6 +103,17 @@ interface MotoShopContextType {
   toggleTimer: (id: string) => void;
   getServiceOrderById: (id: string) => ServiceOrder | undefined;
 
+  // Services Catalog
+  services: ServiceCatalogItem[];
+  addService: (service: Omit<ServiceCatalogItem, "id" | "createdAt" | "tenantId">) => ServiceCatalogItem;
+  updateService: (id: string, data: Partial<ServiceCatalogItem>) => void;
+  deleteService: (id: string) => void;
+
+  // Financial Records
+  financialRecords: FinancialRecord[];
+  addFinancialRecord: (record: Omit<FinancialRecord, "id" | "createdAt" | "tenantId">) => FinancialRecord;
+  deleteFinancialRecord: (id: string) => void;
+
   // Maintenance Records
   maintenanceRecords: MaintenanceRecord[];
   getVehicleMaintenanceHistory: (vehicleId: string) => MaintenanceRecord[];
@@ -130,6 +156,8 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
     SEED_MAINTENANCE_RECORDS
   );
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
+  const [services, setServices] = useState<ServiceCatalogItem[]>(SEED_SERVICES);
+  const [financialRecords, setFinancialRecords] = useState<FinancialRecord[]>(SEED_FINANCIAL_RECORDS);
 
   // Load from LocalStorage
   useEffect(() => {
@@ -206,6 +234,8 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
         if (parsed.serviceOrders) setServiceOrders(parsed.serviceOrders);
         if (parsed.maintenanceRecords) setMaintenanceRecords(parsed.maintenanceRecords);
         if (parsed.stockMovements) setStockMovements(parsed.stockMovements);
+        if (parsed.services) setServices(parsed.services);
+        if (parsed.financialRecords) setFinancialRecords(parsed.financialRecords);
       }
     } catch (e) {
       console.error("Error loading MotoShop store from localStorage", e);
@@ -230,6 +260,8 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
         serviceOrders,
         maintenanceRecords,
         stockMovements,
+        services,
+        financialRecords,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (e) {
@@ -248,6 +280,8 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
     serviceOrders,
     maintenanceRecords,
     stockMovements,
+    services,
+    financialRecords,
   ]);
 
   const login = (user: User) => {
@@ -382,6 +416,138 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
     setUsers((prev) => [newOwner, ...prev]);
 
     return { tenant: newTenant, owner: newOwner };
+  };
+
+  const registerTrialDemo = (data: {
+    ownerName: string;
+    email: string;
+    password?: string;
+    phone: string;
+    shopName: string;
+    workshopType: WorkshopType;
+  }) => {
+    const newTenantId = `tenant-${Date.now()}`;
+    const slug = (data.shopName || "oficina")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+
+    const now = new Date();
+    const durationDays = 7;
+    const expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+
+    const newTenant: Tenant = {
+      id: newTenantId,
+      name: data.shopName,
+      slug: `${slug || "oficina"}-${Math.floor(Math.random() * 10000)}`,
+      plan: "TRIAL",
+      workshopType: data.workshopType || "MOTOS",
+      subscriptionCycle: "TRIAL",
+      subscriptionPrice: 0,
+      subscriptionDurationDays: durationDays,
+      subscriptionStartedAt: now.toISOString(),
+      subscriptionExpiresAt: expiresAt,
+      subscriptionStatus: "TRIAL",
+      isTrial: true,
+      phone: data.phone,
+      email: data.email,
+      createdAt: now.toISOString(),
+      lastAccessAt: now.toISOString(),
+      lastAccessUser: data.ownerName,
+      lastAccessUserRole: "Proprietário / Admin",
+      totalRevenue: 0,
+      ordersCount: 0,
+      vehiclesCount: 0,
+      activeUsersCount: 1,
+      status: "ACTIVE",
+    };
+
+    const newOwner: User = {
+      id: `user-${Date.now()}`,
+      name: data.ownerName,
+      email: data.email,
+      username: data.email.split("@")[0],
+      phone: data.phone,
+      role: "ADMIN",
+      tenantId: newTenantId,
+      password: data.password || "mot-os123",
+      mustChangePassword: false,
+      twoFactorEnabled: false,
+      avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+    };
+
+    setTenants((prev) => [newTenant, ...prev]);
+    setUsers((prev) => [newOwner, ...prev]);
+    setTenantState(newTenant);
+    setCurrentUserState(newOwner);
+    setIsAuthenticated(true);
+
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("motoshop_session_active", "true");
+      sessionStorage.setItem("motoshop_session_user_id", newOwner.id);
+      sessionStorage.setItem("motoshop_last_route", "/dashboard");
+    }
+
+    return { tenant: newTenant, user: newOwner };
+  };
+
+  const liberateTrial = (tenantId: string, targetPlan: "MONTHLY" | "ANNUAL" = "MONTHLY") => {
+    const isAnnual = targetPlan === "ANNUAL";
+    const durationDays = isAnnual ? 365 : 30;
+    const price = isAnnual ? 2000 : 280;
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+
+    const updateData: Partial<Tenant> = {
+      plan: targetPlan,
+      subscriptionCycle: targetPlan,
+      subscriptionPrice: price,
+      subscriptionDurationDays: durationDays,
+      subscriptionStartedAt: now.toISOString(),
+      subscriptionExpiresAt: expiresAt,
+      subscriptionStatus: "ACTIVE",
+      status: "ACTIVE",
+      isTrial: false,
+    };
+
+    updateTenant(tenantId, updateData);
+  };
+
+  const addService = (srv: Omit<ServiceCatalogItem, "id" | "createdAt" | "tenantId">) => {
+    const newItem: ServiceCatalogItem = {
+      ...srv,
+      id: `srv-${Date.now()}`,
+      tenantId: tenant.id,
+      createdAt: new Date().toISOString(),
+    };
+    setServices((prev) => [newItem, ...prev]);
+    return newItem;
+  };
+
+  const updateService = (id: string, data: Partial<ServiceCatalogItem>) => {
+    setServices((prev) => prev.map((s) => (s.id === id ? { ...s, ...data } : s)));
+  };
+
+  const deleteService = (id: string) => {
+    setServices((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const addFinancialRecord = (rec: Omit<FinancialRecord, "id" | "createdAt" | "tenantId">) => {
+    const newRec: FinancialRecord = {
+      ...rec,
+      id: `fin-${Date.now()}`,
+      tenantId: tenant.id,
+      createdAt: new Date().toISOString(),
+    };
+    setFinancialRecords((prev) => [newRec, ...prev]);
+    return newRec;
+  };
+
+  const deleteFinancialRecord = (id: string) => {
+    setFinancialRecords((prev) => prev.filter((f) => f.id !== id));
   };
 
   const renewSubscription = (tenantId: string, plan: "MONTHLY" | "ANNUAL") => {
@@ -801,6 +967,10 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
     activeMechanicsCount,
   };
 
+  const trialTenants = tenants.filter(
+    (t) => t.plan === "TRIAL" || t.isTrial === true || t.subscriptionCycle === "TRIAL"
+  );
+
   return (
     <MotoShopContext.Provider
       value={{
@@ -810,11 +980,14 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
         logout,
         tenant,
         tenants,
+        trialTenants,
         setTenant,
         updateTenant,
         deleteTenant,
         toggleTenantStatus,
         addTenant,
+        registerTrialDemo,
+        liberateTrial,
         renewSubscription,
         simulateSubscriptionDays,
         currentUser,
@@ -853,6 +1026,13 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
         updateOSStatus,
         toggleTimer,
         getServiceOrderById,
+        services,
+        addService,
+        updateService,
+        deleteService,
+        financialRecords,
+        addFinancialRecord,
+        deleteFinancialRecord,
         maintenanceRecords,
         getVehicleMaintenanceHistory,
         resetToDefaults,

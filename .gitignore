@@ -50,3 +50,7 @@ next-env.d.ts
 
 .vercel
 .env*
+ 
+backup_dados/
+backup_rollback*/
+dump/

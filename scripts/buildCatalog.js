@@ -20,90 +20,145 @@ function parseCsv(filePath) {
 
 const marcasMotos = parseCsv('veiculos/marcas-motos.csv');
 const modelosMotos = parseCsv('veiculos/modelos-moto.csv');
+
+const marcasCarros = parseCsv('veiculos/marcas-carros.csv');
+const modelosCarros = parseCsv('veiculos/modelos-carro.csv');
+
+const marcasCaminhao = parseCsv('veiculos/marcas-caminhao.csv');
+const modelosCaminhao = parseCsv('veiculos/modelos-caminhao.csv');
+
 const marcasNautica = parseCsv('veiculos/marcas-nautica.csv');
 const modelosNautica = parseCsv('veiculos/modelos-nautica.csv');
 
-// Create brand dictionary ID -> Brand Name and Category
-const brandMap = new Map();
+function buildCategoryMapping(marcas, modelos, categoryPrefix) {
+  const brandIdToName = new Map();
+  marcas.forEach(m => {
+    brandIdToName.set(m.ID, m.NOME.trim());
+  });
 
-marcasMotos.forEach(m => {
-  const name = m.NOME.trim();
-  brandMap.set('MOTO_' + m.ID, { id: 'MOTO_' + m.ID, rawId: m.ID, name, category: 'MOTO' });
-});
+  const brandModels = {};
+  const brandsSet = new Set();
 
-marcasNautica.forEach(m => {
-  const name = m.NOME.trim();
-  brandMap.set('NAUTICA_' + m.ID, { id: 'NAUTICA_' + m.ID, rawId: m.ID, name, category: 'NAUTICA' });
-});
+  marcas.forEach(m => {
+    const name = m.NOME.trim();
+    brandsSet.add(name);
+    if (!brandModels[name]) brandModels[name] = [];
+  });
 
-// Map models
-const brandModelsMap = {};
+  modelos.forEach(m => {
+    const brandName = brandIdToName.get(m.IDMARCA) || 'OUTROS';
+    brandsSet.add(brandName);
+    if (!brandModels[brandName]) brandModels[brandName] = [];
+    if (!brandModels[brandName].includes(m.NOME.trim())) {
+      brandModels[brandName].push(m.NOME.trim());
+    }
+  });
 
-modelosMotos.forEach(m => {
-  const brandKey = 'MOTO_' + m.IDMARCA;
-  const brand = brandMap.get(brandKey);
-  const brandName = brand ? brand.name : 'OUTROS';
-  if (!brandModelsMap[brandName]) {
-    brandModelsMap[brandName] = [];
+  for (const b in brandModels) {
+    brandModels[b].sort((a, b) => a.localeCompare(b));
   }
-  if (!brandModelsMap[brandName].includes(m.NOME)) {
-    brandModelsMap[brandName].push(m.NOME);
-  }
-});
 
-modelosNautica.forEach(m => {
-  const brandKey = 'NAUTICA_' + m.IDMARCA;
-  const brand = brandMap.get(brandKey);
-  const brandName = brand ? brand.name : 'OUTROS';
-  if (!brandModelsMap[brandName]) {
-    brandModelsMap[brandName] = [];
-  }
-  if (!brandModelsMap[brandName].includes(m.NOME)) {
-    brandModelsMap[brandName].push(m.NOME);
-  }
-});
-
-// Sort models alphabetically
-for (const b in brandModelsMap) {
-  brandModelsMap[b].sort((a, b) => a.localeCompare(b));
+  const sortedBrands = Array.from(brandsSet).sort((a, b) => a.localeCompare(b));
+  return { brands: sortedBrands, models: brandModels };
 }
 
-// Extract distinct brand names per category
-const motoBrands = Array.from(new Set(marcasMotos.map(m => m.NOME.trim()))).sort((a, b) => a.localeCompare(b));
-const nauticaBrands = Array.from(new Set(marcasNautica.map(m => m.NOME.trim()))).sort((a, b) => a.localeCompare(b));
-const allUniqueBrands = Array.from(new Set([...motoBrands, ...nauticaBrands])).sort((a, b) => a.localeCompare(b));
+const motoData = buildCategoryMapping(marcasMotos, modelosMotos, 'MOTO');
+const carroData = buildCategoryMapping(marcasCarros, modelosCarros, 'CARRO');
+const caminhaoData = buildCategoryMapping(marcasCaminhao, modelosCaminhao, 'CAMINHAO');
+const nauticaData = buildCategoryMapping(marcasNautica, modelosNautica, 'NAUTICA');
 
-const code = `// Catálogo de Veículos extraído de veiculos/marcas-motos.csv, modelos-moto.csv, marcas-nautica.csv e modelos-nautica.csv
+// Unified map
+const allBrandsSet = new Set([
+  ...motoData.brands,
+  ...carroData.brands,
+  ...caminhaoData.brands,
+  ...nauticaData.brands
+]);
+const allBrands = Array.from(allBrandsSet).sort((a, b) => a.localeCompare(b));
 
-export type VehicleCategory = 'MOTO' | 'NAUTICA' | 'TODOS';
+const unifiedModelsMap = {};
+function mergeModels(sourceMap) {
+  for (const brand in sourceMap) {
+    if (!unifiedModelsMap[brand]) {
+      unifiedModelsMap[brand] = [];
+    }
+    sourceMap[brand].forEach(m => {
+      if (!unifiedModelsMap[brand].includes(m)) {
+        unifiedModelsMap[brand].push(m);
+      }
+    });
+  }
+}
 
-export const MOTO_BRANDS: string[] = ${JSON.stringify(motoBrands, null, 2)};
+mergeModels(motoData.models);
+mergeModels(carroData.models);
+mergeModels(caminhaoData.models);
+mergeModels(nauticaData.models);
 
-export const NAUTICA_BRANDS: string[] = ${JSON.stringify(nauticaBrands, null, 2)};
+for (const b in unifiedModelsMap) {
+  unifiedModelsMap[b].sort((a, b) => a.localeCompare(b));
+}
 
-export const ALL_BRANDS: string[] = ${JSON.stringify(allUniqueBrands, null, 2)};
+const code = `// Catálogo Completo de Veículos (Motos, Carros, Caminhões e Náutica)
+// Gerado automaticamente com base nos arquivos CSV de veiculos/
 
-export const BRAND_MODELS_MAP: Record<string, string[]> = ${JSON.stringify(brandModelsMap, null, 2)};
+export type WorkshopType = 'MOTOS' | 'CARROS' | 'CAMINHOES' | 'NAUTICA' | 'GERAL';
+export type VehicleCategory = 'MOTO' | 'CARRO' | 'CAMINHAO' | 'NAUTICA' | 'TODOS';
 
-export function getBrandsByCategory(category: VehicleCategory = 'MOTO'): string[] {
-  if (category === 'MOTO') return MOTO_BRANDS;
-  if (category === 'NAUTICA') return NAUTICA_BRANDS;
+export const MOTO_BRANDS: string[] = ${JSON.stringify(motoData.brands, null, 2)};
+export const CARRO_BRANDS: string[] = ${JSON.stringify(carroData.brands, null, 2)};
+export const CAMINHAO_BRANDS: string[] = ${JSON.stringify(caminhaoData.brands, null, 2)};
+export const NAUTICA_BRANDS: string[] = ${JSON.stringify(nauticaData.brands, null, 2)};
+export const ALL_BRANDS: string[] = ${JSON.stringify(allBrands, null, 2)};
+
+export const MOTO_MODELS_MAP: Record<string, string[]> = ${JSON.stringify(motoData.models, null, 2)};
+export const CARRO_MODELS_MAP: Record<string, string[]> = ${JSON.stringify(carroData.models, null, 2)};
+export const CAMINHAO_MODELS_MAP: Record<string, string[]> = ${JSON.stringify(caminhaoData.models, null, 2)};
+export const NAUTICA_MODELS_MAP: Record<string, string[]> = ${JSON.stringify(nauticaData.models, null, 2)};
+export const BRAND_MODELS_MAP: Record<string, string[]> = ${JSON.stringify(unifiedModelsMap, null, 2)};
+
+export function getBrandsByWorkshopType(type: WorkshopType | VehicleCategory = 'MOTOS'): string[] {
+  const norm = String(type).toUpperCase();
+  if (norm === 'MOTOS' || norm === 'MOTO') return MOTO_BRANDS;
+  if (norm === 'CARROS' || norm === 'CARRO') return CARRO_BRANDS;
+  if (norm === 'CAMINHOES' || norm === 'CAMINHAO') return CAMINHAO_BRANDS;
+  if (norm === 'NAUTICA') return NAUTICA_BRANDS;
   return ALL_BRANDS;
 }
 
-export function getModelsByBrand(brand: string): string[] {
+export function getBrandsByCategory(category: VehicleCategory | WorkshopType = 'MOTO'): string[] {
+  return getBrandsByWorkshopType(category as WorkshopType);
+}
+
+export function getModelsByBrand(brand: string, type?: WorkshopType | VehicleCategory): string[] {
   if (!brand) return [];
   const upper = brand.toUpperCase().trim();
-  if (BRAND_MODELS_MAP[upper]) {
-    return BRAND_MODELS_MAP[upper];
+
+  let targetMap = BRAND_MODELS_MAP;
+  if (type) {
+    const norm = String(type).toUpperCase();
+    if (norm === 'MOTOS' || norm === 'MOTO') targetMap = MOTO_MODELS_MAP;
+    else if (norm === 'CARROS' || norm === 'CARRO') targetMap = CARRO_MODELS_MAP;
+    else if (norm === 'CAMINHOES' || norm === 'CAMINHAO') targetMap = CAMINHAO_MODELS_MAP;
+    else if (norm === 'NAUTICA') targetMap = NAUTICA_MODELS_MAP;
   }
-  const key = Object.keys(BRAND_MODELS_MAP).find(k => k.toUpperCase() === upper);
-  if (key) {
-    return BRAND_MODELS_MAP[key];
+
+  if (targetMap[upper] && targetMap[upper].length > 0) {
+    return targetMap[upper];
   }
+  const key = Object.keys(targetMap).find(k => k.toUpperCase() === upper);
+  if (key && targetMap[key].length > 0) {
+    return targetMap[key];
+  }
+
+  // Fallback to unified
+  if (BRAND_MODELS_MAP[upper]) return BRAND_MODELS_MAP[upper];
+  const unifiedKey = Object.keys(BRAND_MODELS_MAP).find(k => k.toUpperCase() === upper);
+  if (unifiedKey) return BRAND_MODELS_MAP[unifiedKey];
+
   return [];
 }
 `;
 
 fs.writeFileSync('lib/vehicleCatalog.ts', code, 'utf-8');
-console.log('lib/vehicleCatalog.ts successfully generated!');
+console.log('lib/vehicleCatalog.ts successfully generated with all 4 vehicle types!');

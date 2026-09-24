@@ -62,33 +62,37 @@ export default function SubscriptionExpiredModal() {
 
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-black uppercase tracking-wider">
               <AlertOctagon className="w-3.5 h-3.5" />
-              <span>Acesso Suspenso • Plano Vencido</span>
+              <span>{subInfo.isTrial ? "Demonstração de 7 Dias Expirada" : "Acesso Suspenso • Plano Vencido"}</span>
             </div>
 
             <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              O plano da oficina {tenant.name} expirou
+              {subInfo.isTrial
+                ? `Período de testes da ${tenant.name} encerrado`
+                : `O plano da oficina ${tenant.name} expirou`}
             </h2>
 
             <p className="text-sm text-zinc-400 max-w-lg mx-auto leading-relaxed">
-              O período contratado da assinatura chegou ao fim. Para que sua equipe (recepção e mecânicos) continue utilizando o sistema e registrando ordens de serviço, é necessário renovar o plano.
+              {subInfo.isTrial
+                ? "Sua semana de degustação gratuita do Mot-OS foi concluída! Para continuar utilizando o sistema, gerando ordens de serviço e acompanhando seu estoque, escolha um plano abaixo para liberar o sistema."
+                : "O período contratado da assinatura chegou ao fim. Para que sua equipe (recepção e mecânicos) continue utilizando o sistema e registrando ordens de serviço, é necessário renovar o plano."}
             </p>
           </div>
 
           {/* Alert Callout */}
-          <div className="p-4 rounded-2xl bg-red-950/30 border border-red-500/30 flex items-start gap-3 text-xs text-red-200">
-            <ShieldAlert className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+          <div className="p-4 rounded-2xl bg-zinc-900 border border-zinc-700/80 flex items-start gap-3 text-xs text-zinc-300">
+            <ShieldAlert className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
             <div>
-              <strong className="block text-red-300 font-bold mb-0.5">
-                Segurança dos seus dados garantida
+              <strong className="block text-white font-bold mb-0.5">
+                Todos os dados e ordens de serviço continuam salvos
               </strong>
-              Todos os seus cadastros de clientes, motos, peças e ordens de serviço continuam salvos e seguros. A renovação reativa o acesso de todos imediatamente.
+              Seus veículos, clientes, histórico de bancada e lançamentos estão preservados com segurança. Ao contratar, seu sistema é liberado imediatamente.
             </div>
           </div>
 
           {/* Plan Choice Cards */}
           <div>
             <label className="text-xs font-bold text-zinc-400 block mb-3 uppercase tracking-wider">
-              Selecione o plano para renovação imediata:
+              Selecione o plano para liberação imediata do Mot-OS:
             </label>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -193,8 +197,20 @@ export default function SubscriptionExpiredModal() {
               )}
             </button>
 
+            <a
+              href={`https://wa.me/5511999998888?text=${encodeURIComponent(
+                `Olá, gostaria de contratar e liberar o sistema Mot-OS para a oficina ${tenant.name} (Plano ${selectedPlan === "ANNUAL" ? "Anual R$ 2.000" : "Mensal R$ 280"}). Meu usuário é ${currentUser?.name || "Admin"}.`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-950/40 active:scale-98 transition-all flex items-center justify-center gap-2"
+            >
+              <PhoneCall className="w-4 h-4" />
+              <span>Contratar via WhatsApp com Consultor Mot-OS</span>
+            </a>
+
             <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-zinc-500 pt-2 border-t border-zinc-800">
-              <span>Dúvidas ou suporte financeiro? (11) 99999-8888</span>
+              <span>Atendimento Direto: (11) 99999-8888</span>
               <button
                 type="button"
                 onClick={handleLogout}

@@ -8,6 +8,9 @@ import {
   LayoutDashboard,
   ClipboardList,
   Bike,
+  Car,
+  Truck,
+  Anchor,
   Package,
   Users,
   BarChart3,
@@ -16,14 +19,15 @@ import {
   PlusCircle,
   Building2,
   ChevronDown,
-  RotateCcw,
   ShieldCheck,
-  ArrowRightLeft,
   UserCheck,
+  DollarSign,
+  Coins,
   LogOut,
+  Star,
+  CheckCircle2,
 } from "lucide-react";
 import { useMotoShop } from "@/lib/store";
-import { Role } from "@/lib/types";
 import { formatPlanName } from "@/lib/utils";
 
 export function Sidebar() {
@@ -34,76 +38,150 @@ export function Sidebar() {
     tenants,
     setTenant,
     currentUser,
-    users,
-    setCurrentUser,
     metrics,
-    resetToDefaults,
     logout,
   } = useMotoShop();
 
   const [showTenantMenu, setShowTenantMenu] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
   const isMechanic = currentUser.role === "MECHANIC";
   const isSaasOwner = currentUser.role === "SUPER_ADMIN";
 
-  const navItems = isSaasOwner
+  // Dynamic vehicle icon and label based on workshop segment
+  const getVehicleIcon = (type?: string) => {
+    const norm = String(type || "").toUpperCase();
+    if (norm === "CARROS" || norm === "CARRO") return Car;
+    if (norm === "CAMINHOES" || norm === "CAMINHAO") return Truck;
+    if (norm === "NAUTICA") return Anchor;
+    return Bike;
+  };
+
+  const getVehicleLabel = (type?: string) => {
+    const norm = String(type || "").toUpperCase();
+    if (norm === "CARROS" || norm === "CARRO") return "Carros";
+    if (norm === "CAMINHOES" || norm === "CAMINHAO") return "Caminhões";
+    if (norm === "NAUTICA") return "Embarcações";
+    if (norm === "MOTOS" || norm === "MOTO") return "Motos";
+    return "Veículos";
+  };
+
+  const VehicleIcon = getVehicleIcon(tenant.workshopType);
+  const vehicleLabel = getVehicleLabel(tenant.workshopType);
+
+  interface SidebarNavItem {
+    label: string;
+    href: string;
+    icon: any;
+    badge?: number;
+    alertBadge?: number;
+  }
+
+  interface SidebarNavSection {
+    title: string;
+    items: SidebarNavItem[];
+  }
+
+  // Grouped Navigation matching dump screenshots
+  const navSections: SidebarNavSection[] = isSaasOwner
     ? [
-        { label: "Painel da Plataforma", href: "/dashboard", icon: LayoutDashboard },
-        { label: "Oficinas Contratantes", href: "/dashboard#oficinas", icon: Building2 },
-        { label: "Planos & Assinaturas", href: "/settings/billing", icon: CreditCard },
+        {
+          title: "PLATAFORMA SAAS",
+          items: [
+            { label: "Dashboard Geral", href: "/dashboard", icon: LayoutDashboard },
+            { label: "Oficinas em Teste (Trial)", href: "/dashboard#trials", icon: Star, badge: tenants.filter(t => t.plan === 'TRIAL' || t.isTrial).length },
+            { label: "Oficinas Contratantes", href: "/dashboard#oficinas", icon: Building2 },
+          ],
+        },
+        {
+          title: "SISTEMA",
+          items: [
+            { label: "Planos & Assinaturas", href: "/settings/billing", icon: CreditCard },
+            { label: "Configurações Globais", href: "/settings", icon: Settings },
+          ],
+        },
       ]
     : isMechanic
     ? [
-        { label: "Painel de Controle", href: "/dashboard", icon: LayoutDashboard },
         {
-          label: "Minhas OS",
-          href: "/orders",
-          icon: ClipboardList,
-          badge: metrics.openOrders + metrics.inProgressOrders,
+          title: "PRINCIPAL",
+          items: [
+            { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+            {
+              label: "Minhas OS",
+              href: "/orders",
+              icon: ClipboardList,
+              badge: metrics.openOrders + metrics.inProgressOrders,
+            },
+          ],
         },
-        { label: "Consultar Veículos", href: "/vehicles", icon: Bike },
-        { label: "Alterar Senha", href: "/employees", icon: UserCheck },
+        {
+          title: "CADASTROS",
+          items: [
+            { label: vehicleLabel, href: "/vehicles", icon: VehicleIcon },
+            { label: "Estoque", href: "/stock", icon: Package },
+          ],
+        },
       ]
     : [
-        { label: "Painel de Controle", href: "/dashboard", icon: LayoutDashboard },
         {
-          label: "Ordens de Serviço",
-          href: "/orders",
-          icon: ClipboardList,
-          badge: metrics.openOrders + metrics.inProgressOrders,
+          title: "PRINCIPAL",
+          items: [
+            { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+            {
+              label: "Ordens de Serviço",
+              href: "/orders",
+              icon: ClipboardList,
+              badge: metrics.openOrders + metrics.inProgressOrders,
+            },
+          ],
         },
-        { label: "Veículos & Placas", href: "/vehicles", icon: Bike },
         {
-          label: "Estoque de Peças",
-          href: "/stock",
-          icon: Package,
-          alertBadge: metrics.lowStockCount > 0 ? metrics.lowStockCount : undefined,
+          title: "CADASTROS",
+          items: [
+            { label: "Clientes", href: "/customers", icon: Users },
+            { label: vehicleLabel, href: "/vehicles", icon: VehicleIcon },
+            {
+              label: "Estoque",
+              href: "/stock",
+              icon: Package,
+              alertBadge: metrics.lowStockCount > 0 ? metrics.lowStockCount : undefined,
+            },
+            { label: "Serviços", href: "/services", icon: Wrench },
+            { label: "Técnicos", href: "/employees", icon: UserCheck },
+          ],
         },
-        { label: "Movimentações", href: "/stock/movements", icon: ArrowRightLeft },
-        { label: "Clientes", href: "/customers", icon: Users },
-        { label: "Funcionários", href: "/employees", icon: UserCheck },
-        { label: "Relatórios & Métricas", href: "/reports", icon: BarChart3 },
-        { label: "Planos & Assinatura", href: "/settings/billing", icon: CreditCard },
-        { label: "Configurações", href: "/settings", icon: Settings },
+        {
+          title: "FINANCEIRO",
+          items: [
+            { label: "Financeiro", href: "/financial", icon: DollarSign },
+            { label: "Relatórios", href: "/reports", icon: BarChart3 },
+            { label: "Comissões", href: "/commissions", icon: Coins },
+          ],
+        },
+        {
+          title: "SISTEMA",
+          items: [
+            { label: "Configurações", href: "/settings", icon: Settings },
+            { label: "Planos", href: "/settings/billing", icon: Star },
+          ],
+        },
       ];
 
-
   return (
-    <aside className="hidden lg:flex flex-col w-64 bg-[#141416] border-r border-zinc-800/80 text-zinc-300 h-screen sticky top-0 select-none">
+    <aside className="hidden lg:flex flex-col w-64 bg-[#0d111a] border-r border-slate-800/80 text-slate-300 h-screen sticky top-0 select-none">
       {/* Brand Header */}
-      <div className="p-4 border-b border-zinc-800/80 flex items-center justify-between">
+      <div className="p-4 border-b border-slate-800/80 flex items-center justify-between">
         <Link href="/dashboard" className="flex items-center gap-2.5 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20 group-hover:scale-105 transition-transform">
+          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/30 group-hover:scale-105 transition-transform">
             <Wrench className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-black text-lg text-white tracking-tight">MotoShop</span>
-              <span className="text-[10px] font-bold tracking-wider px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">
-                {formatPlanName(tenant.plan)}
+              <span className="font-black text-lg text-white tracking-tight">Mot-OS</span>
+              <span className="text-[10px] font-bold tracking-wider px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                {tenant.plan === "TRIAL" || tenant.isTrial ? "DEMO 7D" : formatPlanName(tenant.plan)}
               </span>
             </div>
-            <p className="text-xs text-zinc-500 font-medium">Gestão de Oficinas</p>
+            <p className="text-[11px] text-slate-500 font-medium">Gestão Inteligente</p>
           </div>
         </Link>
       </div>
@@ -112,21 +190,24 @@ export function Sidebar() {
       <div className="px-3 pt-3 relative">
         <button
           onClick={() => setShowTenantMenu(!showTenantMenu)}
-          className="w-full text-left p-2 rounded-lg bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 flex items-center justify-between text-xs transition-colors"
+          className="w-full text-left p-2 rounded-lg bg-slate-900/90 border border-slate-800 hover:border-slate-700 flex items-center justify-between text-xs transition-colors"
         >
           <div className="flex items-center gap-2 truncate">
-            <Building2 className="w-4 h-4 text-orange-400 shrink-0" />
+            <Building2 className="w-4 h-4 text-blue-400 shrink-0" />
             <div className="truncate">
-              <p className="text-zinc-200 font-semibold truncate leading-tight">{tenant.name}</p>
-              <p className="text-[10px] text-zinc-500 truncate">Oficina Ativa</p>
+              <p className="text-slate-200 font-semibold truncate leading-tight">{tenant.name}</p>
+              <p className="text-[10px] text-slate-500 truncate flex items-center gap-1">
+                <span>{tenant.workshopType ? `Oficina ${tenant.workshopType}` : "Oficina Ativa"}</span>
+                {tenant.isTrial && <span className="text-amber-400 font-bold">(Teste)</span>}
+              </p>
             </div>
           </div>
-          <ChevronDown className="w-3.5 h-3.5 text-zinc-400 shrink-0 ml-1" />
+          <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
         </button>
 
         {showTenantMenu && (
-          <div className="absolute left-3 right-3 top-14 bg-zinc-900 border border-zinc-700 rounded-lg shadow-2xl p-1 z-50">
-            <div className="text-[10px] uppercase font-bold text-zinc-500 px-2 py-1">
+          <div className="absolute left-3 right-3 top-14 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl p-1 z-50">
+            <div className="text-[10px] uppercase font-bold text-slate-500 px-2 py-1">
               Oficinas Cadastradas
             </div>
             {tenants.map((t) => (
@@ -138,12 +219,14 @@ export function Sidebar() {
                 }}
                 className={`w-full text-left px-2.5 py-1.5 rounded text-xs flex items-center justify-between transition-colors ${
                   t.id === tenant.id
-                    ? "bg-orange-500/20 text-orange-400 font-semibold"
-                    : "text-zinc-300 hover:bg-zinc-800"
+                    ? "bg-blue-600/20 text-blue-400 font-semibold"
+                    : "text-slate-300 hover:bg-slate-800"
                 }`}
               >
                 <span className="truncate">{t.name}</span>
-                <span className="text-[10px] font-mono text-zinc-500">{formatPlanName(t.plan)}</span>
+                <span className="text-[10px] font-mono text-slate-500">
+                  {t.workshopType || formatPlanName(t.plan)}
+                </span>
               </button>
             ))}
           </div>
@@ -152,71 +235,79 @@ export function Sidebar() {
 
       {/* Quick Action Button - Restricted for mechanics and SaaS owner */}
       {!isMechanic && !isSaasOwner && (
-        <div className="p-3">
+        <div className="px-3 pt-3 pb-1">
           <Link
             href="/orders/new"
-            className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold text-sm shadow-md shadow-orange-500/25 hover:from-orange-600 hover:to-amber-600 transition-all active:scale-[0.98]"
+            className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs shadow-md shadow-blue-600/25 transition-all active:scale-[0.98]"
           >
             <PlusCircle className="w-4 h-4" />
-            <span>Nova Ordem de Serviço</span>
+            <span>+ Nova OS</span>
           </Link>
         </div>
       )}
 
-      {/* Navigation Links */}
-      <nav className="flex-1 px-3 space-y-1 overflow-y-auto pt-1">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive =
-            pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+      {/* Grouped Navigation Links */}
+      <nav className="flex-1 px-3 space-y-4 overflow-y-auto pt-2 pb-4 scrollbar-thin scrollbar-thumb-slate-800">
+        {navSections.map((section) => (
+          <div key={section.title} className="space-y-1">
+            <div className="text-[10px] font-bold tracking-wider text-slate-500 px-2.5 uppercase">
+              {section.title}
+            </div>
+            {section.items.map((item) => {
+              const Icon = item.icon;
+              const isActive =
+                pathname === item.href ||
+                (item.href !== "/dashboard" && pathname.startsWith(item.href));
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                isActive
-                  ? "bg-orange-500/15 text-orange-400 border border-orange-500/30 font-semibold"
-                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Icon
-                  className={`w-4 h-4 ${isActive ? "text-orange-400" : "text-zinc-500"}`}
-                />
-                <span>{item.label}</span>
-              </div>
-              {item.badge !== undefined && item.badge > 0 && (
-                <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700">
-                  {item.badge}
-                </span>
-              )}
-              {item.alertBadge !== undefined && item.alertBadge > 0 && (
-                <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse">
-                  {item.alertBadge}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    isActive
+                      ? "bg-blue-600/20 text-blue-400 border-l-2 border-blue-500 font-semibold pl-2"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 truncate">
+                    <Icon
+                      className={`w-4 h-4 shrink-0 ${isActive ? "text-blue-400" : "text-slate-500"}`}
+                    />
+                    <span className="truncate">{item.label}</span>
+                  </div>
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 shrink-0">
+                      {item.badge}
+                    </span>
+                  )}
+                  {item.alertBadge !== undefined && item.alertBadge > 0 && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse shrink-0">
+                      {item.alertBadge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* User Profile & Logout Footer */}
-      <div className="p-3 border-t border-zinc-800/80 bg-zinc-950/40">
-        <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-900/70 border border-zinc-800">
-          <div className="flex items-center gap-2.5 truncate">
-            <div className="w-8 h-8 rounded-full bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 font-bold text-xs shrink-0">
+      <div className="p-3 border-t border-slate-800/80 bg-slate-950/40">
+        <div className="flex items-center justify-between p-2 rounded-xl bg-slate-900/70 border border-slate-800">
+          <div className="flex items-center gap-2 truncate">
+            <div className="w-7 h-7 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-400 font-bold text-xs shrink-0">
               {currentUser.name.slice(0, 2).toUpperCase()}
             </div>
             <div className="truncate">
-              <p className="text-xs font-semibold text-zinc-200 truncate">{currentUser.name}</p>
+              <p className="text-xs font-semibold text-slate-200 truncate leading-tight">{currentUser.name}</p>
               <div className="flex items-center gap-1">
                 <ShieldCheck className="w-3 h-3 text-emerald-400 shrink-0" />
-                <span className="text-[10px] text-zinc-400 font-medium truncate">
+                <span className="text-[10px] text-slate-400 truncate">
                   {currentUser.role === "SUPER_ADMIN"
-                    ? "Administrador Geral"
+                    ? "Admin do SaaS"
                     : currentUser.role === "ADMIN"
-                    ? "Proprietário / Admin"
+                    ? "Proprietário"
                     : currentUser.role === "MECHANIC"
                     ? "Mecânico"
                     : currentUser.role === "RECEPTIONIST"
@@ -228,7 +319,7 @@ export function Sidebar() {
           </div>
         </div>
 
-        {/* Botão Sair / Desconectar */}
+        {/* Botão Sair */}
         <button
           type="button"
           onClick={() => {
@@ -237,11 +328,11 @@ export function Sidebar() {
               router.push("/login");
             }
           }}
-          className="mt-2 w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-red-950/25 hover:bg-red-900/40 text-red-400 border border-red-500/25 text-xs font-bold transition-all active:scale-95"
+          className="mt-2 w-full flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg bg-slate-900/80 hover:bg-red-950/30 text-slate-400 hover:text-red-400 border border-slate-800 hover:border-red-500/30 text-xs font-medium transition-all active:scale-95"
           title="Encerrar sessão"
         >
           <LogOut className="w-3.5 h-3.5" />
-          <span>Sair / Desconectar</span>
+          <span>Sair</span>
         </button>
       </div>
     </aside>
