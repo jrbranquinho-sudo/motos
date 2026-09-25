@@ -197,36 +197,37 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
         }
         if (parsed.users) {
           const hasMaster = parsed.users.some(
-            (u: User) => u.username === "jrbranquinho" || u.email === "jrbranquinho@motoshop.com.br"
+            (u: User) =>
+              u.username === "jrbranquinho" ||
+              u.email === "jrbranquinho@motoshop.com.br" ||
+              u.email === "jrbranquinho@motos.app"
           );
           const rawUsers = hasMaster ? parsed.users : [SEED_USERS[0], ...parsed.users];
-          const PABLO_RESET_KEY = "motoshop_pablo_reset_v1_done";
-          const needsPabloReset = typeof window !== "undefined" && !localStorage.getItem(PABLO_RESET_KEY);
-          if (needsPabloReset && typeof window !== "undefined") {
-            try {
-              localStorage.setItem(PABLO_RESET_KEY, "true");
-            } catch (e) {
-              // ignore
-            }
-          }
 
+          // Preserve any existing passwords changed by user/master - NEVER overwrite with seed!
           const loadedUsers = rawUsers.map((u: User) => {
-            if (u.id === "user-1" || u.username === "marcos" || u.email === "marcos@rota66.com.br" || u.username === "pablo" || u.email === "pablo@rota66.com.br") {
+            if (
+              u.id === "user-1" ||
+              u.username === "marcos" ||
+              u.email === "marcos@rota66.com.br" ||
+              u.username === "pablo" ||
+              u.email === "pablo@rota66.com.br"
+            ) {
               return {
                 ...u,
                 name: "Pablo Silva",
                 username: "pablo",
                 email: "pablo@rota66.com.br",
-                ...(needsPabloReset
-                  ? {
-                      password: "mot-os123",
-                      mustChangePassword: true,
-                      twoFactorEnabled: true,
-                    }
-                  : {}),
+                password: u.password || "mot-os123",
+                mustChangePassword: u.mustChangePassword ?? false,
               };
             }
-            if (u.username === "jrbranquinho" || u.email === "jrbranquinho@motoshop.com.br" || u.role === "SUPER_ADMIN") {
+            if (
+              u.username === "jrbranquinho" ||
+              u.email === "jrbranquinho@motoshop.com.br" ||
+              u.email === "jrbranquinho@motos.app" ||
+              u.role === "SUPER_ADMIN"
+            ) {
               return {
                 ...u,
                 email: "jrbranquinho@motos.app",
@@ -279,6 +280,49 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
       console.error("Error loading MotoShop store from localStorage", e);
     } finally {
       setIsLoaded(true);
+
+      // Background synchronization with cloud Database (Turso / Prisma)
+      // Guarantees passwords and user changes are synchronized across devices
+      try {
+        fetch("/api/users")
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success && Array.isArray(data.users) && data.users.length > 0) {
+              setUsers((prev) =>
+                prev.map((localUser) => {
+                  const dbUser = data.users.find(
+                    (du: User) =>
+                      du.id === localUser.id ||
+                      (du.username && du.username.toLowerCase() === (localUser.username || "").toLowerCase()) ||
+                      (du.email && du.email.toLowerCase() === (localUser.email || "").toLowerCase())
+                  );
+                  if (dbUser && dbUser.password) {
+                    return {
+                      ...localUser,
+                      ...dbUser,
+                      password: dbUser.password,
+                      mustChangePassword: dbUser.mustChangePassword,
+                    };
+                  }
+                  return localUser;
+                })
+              );
+            }
+          })
+          .catch((err) => console.log("DB sync fallback:", err));
+
+        // Background synchronization with official plans
+        fetch("/api/plans")
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success && Array.isArray(data.plans) && data.plans.length > 0) {
+              setPlans(data.plans);
+            }
+          })
+          .catch((err) => console.log("Plans sync fallback:", err));
+      } catch (err) {
+        // ignore offline errors
+      }
     }
   }, []);
 
@@ -321,8 +365,21 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
     stockMovements,
     services,
     financialRecords,
-    plans,
   ]);
+
+  // Synchronize official plans with server API whenever Master makes changes
+  useEffect(() => {
+    if (!isLoaded || !plans || plans.length === 0) return;
+    try {
+      fetch("/api/plans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plans }),
+      }).catch((err) => console.log("Erro ao sincronizar planos na API:", err));
+    } catch (e) {
+      // offline fallback
+    }
+  }, [plans, isLoaded]);
 
   const login = (user: User) => {
     setCurrentUserState(user);
@@ -738,11 +795,23 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
       id: `user-${Date.now()}`,
       tenantId: tenant.id,
       password: data.password || "mot-os123",
-      mustChangePassword: data.mustChangePassword ?? true,
+      mustChangePassword: data.mustChangePassword ?? false,
       twoFactorEnabled: data.twoFactorEnabled ?? true,
       avatar: data.avatar || `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80`,
     };
     setUsers((prev) => [...prev, newUser]);
+
+    // Persist user to cloud database (Turso / Prisma)
+    try {
+      fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newUser),
+      }).catch((err) => console.log("Erro ao salvar novo usuário na API:", err));
+    } catch (e) {
+      // offline fallback
+    }
+
     return newUser;
   };
 
@@ -750,6 +819,17 @@ export function MotoShopProvider({ children }: { children: React.ReactNode }) {
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...data } : u)));
     if (currentUser.id === id) {
       setCurrentUserState((prev) => ({ ...prev, ...data }));
+    }
+
+    // Persist password and user updates directly to cloud database (Turso / Prisma)
+    try {
+      fetch("/api/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...data }),
+      }).catch((err) => console.log("Erro ao salvar alterações do usuário no banco:", err));
+    } catch (e) {
+      // offline fallback
     }
   };
 

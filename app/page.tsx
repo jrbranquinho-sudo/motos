@@ -34,10 +34,29 @@ import {
 import { useMotoShop } from "@/lib/store";
 import { WorkshopType } from "@/lib/types";
 import { MotOsLogo } from "@/components/common/MotOsLogo";
+import { INITIAL_OFFICIAL_PLANS, PlanConfig } from "@/lib/subscription";
 
 export default function LandingPage() {
-  const { tenant, isAuthenticated, isLoaded, registerTrialDemo } = useMotoShop();
+  const { tenant, isAuthenticated, isLoaded, registerTrialDemo, plans: storePlans } = useMotoShop();
   const router = useRouter();
+
+  // Dynamic official plans state (synced with Master updates)
+  const [plans, setPlans] = useState<PlanConfig[]>(INITIAL_OFFICIAL_PLANS);
+
+  useEffect(() => {
+    if (storePlans && storePlans.length > 0) {
+      setPlans(storePlans);
+    }
+    // Also fetch latest public plans from API
+    fetch("/api/plans")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.plans) && data.plans.length > 0) {
+          setPlans(data.plans);
+        }
+      })
+      .catch((e) => console.log("Usando planos locais:", e));
+  }, [storePlans]);
 
   // Trial Modal State
   const [isTrialModalOpen, setIsTrialModalOpen] = useState(false);
@@ -539,67 +558,79 @@ export default function LandingPage() {
               </button>
             </div>
 
-            {/* Plano Mensal */}
-            <div className="p-7 rounded-2xl bg-zinc-900 border border-zinc-800 flex flex-col justify-between shadow-xl">
-              <div>
-                <div className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-zinc-800 text-zinc-300 border border-zinc-700 mb-3">
-                  Recorrente
-                </div>
-                <h3 className="text-2xl font-black text-white">Plano Mensal</h3>
-                <p className="text-xs text-zinc-400 mt-1">Flexibilidade mês a mês para sua oficina</p>
-                <div className="my-5">
-                  <span className="text-4xl sm:text-5xl font-black text-white">R$ 280</span>
-                  <span className="text-xs text-zinc-500 ml-2 font-bold">/ mês</span>
-                </div>
-                <ul className="space-y-2.5 text-xs text-zinc-300 border-t border-zinc-800 pt-5">
-                  <li className="flex items-center gap-2">• Ordens de Serviço e Kanban ilimitados</li>
-                  <li className="flex items-center gap-2">• Controle de estoque com baixa automática</li>
-                  <li className="flex items-center gap-2">• Cadastro de veículos e clientes</li>
-                  <li className="flex items-center gap-2">• Impressão térmica 80mm e folha A4</li>
-                  <li className="flex items-center gap-2">• Equipe ilimitada com controle de comissão</li>
-                  <li className="flex items-center gap-2">• Suporte prioritário via WhatsApp</li>
-                </ul>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsTrialModalOpen(true)}
-                className="mt-8 w-full py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs sm:text-sm text-center block transition-colors"
-              >
-                Testar & Contratar
-              </button>
-            </div>
-
-            {/* Plano Anual (Highlight) */}
-            <div className="p-7 rounded-2xl bg-gradient-to-b from-zinc-900 to-zinc-950 border-2 border-blue-500 flex flex-col justify-between shadow-2xl relative">
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-blue-600 text-white shadow-lg shadow-blue-500/30">
-                Economize R$ 1.360/ano
-              </span>
-              <div>
-                <div className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 mb-3">
-                  Mais Vantajoso
-                </div>
-                <h3 className="text-2xl font-black text-white">Plano Anual</h3>
-                <p className="text-xs text-zinc-400 mt-1">Máxima economia e estabilidade operacional</p>
-                <div className="my-5">
-                  <span className="text-4xl sm:text-5xl font-black text-blue-400">R$ 2.000</span>
-                  <span className="text-xs text-zinc-400 ml-2 font-bold">/ ano (~R$ 166/mês)</span>
-                </div>
-                <ul className="space-y-2.5 text-xs text-zinc-300 border-t border-zinc-800 pt-5">
-                  <li className="flex items-center gap-2">• Todos os recursos do Plano Mensal</li>
-                  <li className="flex items-center gap-2 font-bold text-blue-400">• Economia de R$ 1.360 comparado ao mensal</li>
-                  <li className="flex items-center gap-2">• Tabela de preço congelada por 12 meses</li>
-                  <li className="flex items-center gap-2">• Backup em nuvem com restauração rápida</li>
-                  <li className="flex items-center gap-2">• Suporte VIP via WhatsApp com consultor</li>
-                </ul>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsTrialModalOpen(true)}
-                className="mt-8 w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs sm:text-sm text-center block shadow-lg shadow-blue-500/25 transition-all"
-              >
-                Garantir Plano Anual
-              </button>
-            </div>
+            {/* Dynamic Official Plans Managed by Master */}
+            {(plans && plans.length > 0 ? plans : INITIAL_OFFICIAL_PLANS)
+              .filter((p) => p.active)
+              .map((p) => {
+                const isPopular = p.popular || p.id === "ANNUAL";
+                return (
+                  <div
+                    key={p.id}
+                    className={`p-7 rounded-2xl flex flex-col justify-between shadow-xl relative ${
+                      isPopular
+                        ? "bg-gradient-to-b from-zinc-900 to-zinc-950 border-2 border-blue-500 shadow-2xl"
+                        : "bg-zinc-900 border border-zinc-800"
+                    }`}
+                  >
+                    {isPopular && p.savings && (
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-blue-600 text-white shadow-lg shadow-blue-500/30 whitespace-nowrap">
+                        {p.savings}
+                      </span>
+                    )}
+                    <div>
+                      <div
+                        className={`inline-block px-3 py-1 rounded-full text-xs font-bold border mb-3 ${
+                          isPopular
+                            ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                            : "bg-zinc-800 text-zinc-300 border-zinc-700"
+                        }`}
+                      >
+                        {p.badge || (isPopular ? "Mais Vantajoso" : "Recorrente")}
+                      </div>
+                      <h3 className="text-2xl font-black text-white">{p.name}</h3>
+                      <p className="text-xs text-zinc-400 mt-1">{p.description}</p>
+                      <div className="my-5">
+                        <span
+                          className={`text-4xl sm:text-5xl font-black ${
+                            isPopular ? "text-blue-400" : "text-white"
+                          }`}
+                        >
+                          {p.formattedPrice || `R$ ${p.price}`}
+                        </span>
+                        <span
+                          className={`text-xs ml-2 font-bold ${
+                            isPopular ? "text-zinc-400" : "text-zinc-500"
+                          }`}
+                        >
+                          {p.periodLabel || (p.durationDays === 365 ? "/ ano" : "/ mês")}
+                        </span>
+                      </div>
+                      <ul className="space-y-2.5 text-xs text-zinc-300 border-t border-zinc-800 pt-5">
+                        {p.features && p.features.length > 0 ? (
+                          p.features.map((feat, idx) => (
+                            <li key={idx} className="flex items-center gap-2">
+                              • {feat}
+                            </li>
+                          ))
+                        ) : (
+                          <li className="flex items-center gap-2">• Acesso completo ao sistema</li>
+                        )}
+                      </ul>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsTrialModalOpen(true)}
+                      className={`mt-8 w-full py-3.5 rounded-xl font-black text-xs sm:text-sm text-center block transition-all shadow-lg ${
+                        isPopular
+                          ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/25"
+                          : "bg-zinc-800 hover:bg-zinc-700 text-white"
+                      }`}
+                    >
+                      {isPopular ? `Garantir ${p.name}` : "Testar & Contratar"}
+                    </button>
+                  </div>
+                );
+              })}
           </div>
         </div>
       </section>

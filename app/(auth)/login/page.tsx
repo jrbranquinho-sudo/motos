@@ -88,7 +88,7 @@ export default function LoginPage() {
     setErrorMsg("");
   };
 
-  const handleCredentialsSubmit = (e: React.FormEvent) => {
+  const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
     setExpiredBlock(null);
@@ -105,7 +105,7 @@ export default function LoginPage() {
     // If entered as email (e.g. jrbranquinho@motos-orpin.vercel.app or jrbranquinho@motos.app) or simple username (jrbranquinho)
     const cleanPrefix = clean.includes("@") ? clean.split("@")[0].trim() : clean;
 
-    const foundUser = users.find((u) => {
+    let foundUser = users.find((u) => {
       const uUsername = (u.username || "").toLowerCase();
       const uEmail = (u.email || "").toLowerCase();
       const uEmailPrefix = uEmail.includes("@") ? uEmail.split("@")[0].trim() : uEmail;
@@ -118,6 +118,19 @@ export default function LoginPage() {
 
       return false;
     });
+
+    // If not found in local store, check cloud database (Turso / Prisma)
+    if (!foundUser) {
+      try {
+        const res = await fetch(`/api/users?identifier=${encodeURIComponent(clean)}`);
+        const data = await res.json();
+        if (data.success && data.user) {
+          foundUser = data.user;
+        }
+      } catch (err) {
+        // ignore offline
+      }
+    }
 
     if (!foundUser) {
       setErrorMsg(`Usuário ou e-mail não encontrado no sistema para "${identifier.trim()}".`);
@@ -137,9 +150,27 @@ export default function LoginPage() {
       "admin123",
     ];
 
-    const isPassValid = acceptedPasswords.some(
+    let isPassValid = acceptedPasswords.some(
       (p) => p === cleanPass || p.toLowerCase() === cleanPass.toLowerCase()
     );
+
+    // If password failed locally, double check cloud database in case password was changed on another device
+    if (!isPassValid) {
+      try {
+        const res = await fetch(`/api/users?identifier=${encodeURIComponent(clean)}`);
+        const data = await res.json();
+        if (data.success && data.user && data.user.password) {
+          const dbPass = data.user.password;
+          if (dbPass === cleanPass || dbPass.toLowerCase() === cleanPass.toLowerCase()) {
+            isPassValid = true;
+            foundUser = { ...foundUser, password: dbPass, mustChangePassword: data.user.mustChangePassword };
+            updateUser(foundUser.id, { password: dbPass, mustChangePassword: data.user.mustChangePassword });
+          }
+        }
+      } catch (err) {
+        // ignore offline
+      }
+    }
 
     if (!isPassValid) {
       setErrorMsg(`Senha incorreta. Verifique suas credenciais para ${foundUser.username || foundUser.name}.`);

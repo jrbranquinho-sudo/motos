@@ -67,20 +67,22 @@ async function main() {
   }
   console.log(`✅ ${SEED_TENANTS.length} Oficinas (Tenants) inseridas.`);
 
-  // 2. Users
+  // 2. Users (Preserve existing database passwords - never overwrite with seed)
   for (const u of SEED_USERS) {
+    const existing = await prisma.user.findUnique({ where: { id: u.id } });
     await prisma.user.upsert({
       where: { id: u.id },
       update: {
         name: u.name,
         email: u.email,
         username: u.username,
-        password: u.password,
+        // Protect user's password: preserve database password if set
+        password: existing?.password || u.password,
         phone: u.phone,
         avatar: u.avatar,
         role: u.role,
-        mustChangePassword: u.mustChangePassword || false,
-        twoFactorEnabled: u.twoFactorEnabled || false,
+        mustChangePassword: existing ? existing.mustChangePassword : false,
+        twoFactorEnabled: existing ? existing.twoFactorEnabled : false,
         tenantId: u.tenantId,
       },
       create: {
@@ -92,7 +94,7 @@ async function main() {
         phone: u.phone,
         avatar: u.avatar,
         role: u.role,
-        mustChangePassword: u.mustChangePassword || false,
+        mustChangePassword: false,
         twoFactorEnabled: u.twoFactorEnabled || false,
         tenantId: u.tenantId,
       },
